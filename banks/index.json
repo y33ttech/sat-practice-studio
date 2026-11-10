@@ -1,7 +1,25 @@
 {
   "banks": [
-    { "id": "math-geometry-area-volume", "file": "math-area-and-volume.json", "title": "Math · Area and volume (1,050 q)", "description": "21 patterns × 50 progressive questions with solutions and figures.", "section": "math" },
-    { "id": "math-sampler", "file": "math-sampler.json", "title": "Math sampler", "description": "8 questions: graphs, curves, scatterplot, bar chart, numeric entry.", "section": "math" },
-    { "id": "rw-sampler", "file": "rw-sampler.json", "title": "Reading & Writing sampler", "description": "10 questions across all four R&W domains, incl. cross-text and data.", "section": "rw" }
+    {
+      "id": "math-geometry-area-volume",
+      "file": "math-area-and-volume.json",
+      "title": "Math · Area and volume — SAT Easy (1,050 q)",
+      "description": "21 patterns × 50, each spread easy → hard within the SAT Easy level.",
+      "section": "math"
+    },
+    {
+      "id": "math-sampler",
+      "file": "math-sampler.json",
+      "title": "Math sampler",
+      "description": "8 questions: graphs, curves, scatterplot, bar chart, numeric entry.",
+      "section": "math"
+    },
+    {
+      "id": "rw-sampler",
+      "file": "rw-sampler.json",
+      "title": "Reading & Writing sampler",
+      "description": "10 questions across all four R&W domains, incl. cross-text and data.",
+      "section": "rw"
+    }
   ]
 }

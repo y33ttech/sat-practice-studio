@@ -9,6 +9,22 @@
   const BAND_NAMES = { 'easy': 'Easy', 'easy-medium': 'Easy–Medium', 'medium': 'Medium', 'medium-hard': 'Medium–Hard', 'hard': 'Hard' };
   const LEVEL_OF = { 'easy': 'easy', 'easy-medium': 'easy', 'medium': 'medium', 'medium-hard': 'hard', 'hard': 'hard' };
 
+  /* Two-level difficulty:
+     • satLevel — the official SAT difficulty level of the source batch (e.g. the PDFs in math/medium/…)
+     • subLevel — relative position *within* that level (from `difficulty`)
+     rank = 0…8 orders questions globally: Easy·easy < Easy·medium < … < Hard·hard. */
+  const LEVELS = ['easy', 'medium', 'hard'];
+  const LEVEL_NAMES = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
+  function satLevel(v) {
+    const s = String(v ?? '').toLowerCase().trim();
+    if (!s) return '';
+    if (/^(e|easy|1)$/.test(s)) return 'easy';
+    if (/^(m|med|medium|2)$/.test(s)) return 'medium';
+    if (/^(h|hard|3|hard-very-hard|very-hard)$/.test(s)) return 'hard';
+    return '';
+  }
+  const levelLabel = q => `${LEVEL_NAMES[q.satLevel]} · ${q.subLevel}`;
+
   function band(value, number, perPattern) {
     const raw = String(value || '').toLowerCase().trim().replace(/[–—_\s]+/g, '-').replace(/-to-/g, '-');
     if (BANDS.includes(raw)) return raw;
@@ -75,7 +91,7 @@
       for (const f of ['fast_method', 'hand_solution', 'desmos_method', 'pattern_tip', 'rationale']) if (r[f]) explanation[f] = r[f];
       const q = {
         id: r.id, pattern_id: r.pattern_id, pattern_name: r.pattern_name, topic: r.topic, skill: r.skill, domain: r.domain, section: r.section,
-        number_in_pattern: r.number_in_pattern, difficulty: r.difficulty, type: r.type || r.response_type,
+        number_in_pattern: r.number_in_pattern, difficulty: r.difficulty, sat_difficulty: r.sat_difficulty || r.sat_level, type: r.type || r.response_type,
         passage: r.passage, stem: r.stem || r.question, choices, correct_answer: r.correct_answer || r.answer,
         accepted_answers: r.accepted_answers_json || r.accepted_answers, explanation,
         visual: asObject(r.visual_json) || asObject(r.visual) || undefined
@@ -233,11 +249,15 @@
 
       const num = Number(rq.number_in_pattern) || null;
       const diff = band(rq.difficulty, num, perPattern);
+      const pat = patterns.get(pattern_id);
+      const explicitLevel = satLevel(rq.sat_difficulty ?? rq.sat_level) || satLevel(pat.sat_difficulty ?? pat.sat_level);
+      const lvl = explicitLevel || satLevel(metadata.sat_difficulty ?? metadata.sat_level);
       const explanation = asObject(rq.explanation) || (typeof rq.explanation === 'string' && rq.explanation ? { rationale: rq.explanation } : {});
       if (rq.rationale && !explanation.rationale) explanation.rationale = rq.rationale;
 
       const q = {
-        id, pattern_id, number_in_pattern: num, difficulty: diff, level: LEVEL_OF[diff], type,
+        id, pattern_id, number_in_pattern: num, difficulty: diff, type,
+        satLevel: lvl || 'medium', subLevel: LEVEL_OF[diff], _satExplicit: !!explicitLevel, _satAssumed: !lvl,
         stem: String(rq.stem ?? rq.question ?? '').trim(),
         passage: rq.passage ? String(rq.passage) : '',
         passages: Array.isArray(rq.passages) ? rq.passages.filter(Boolean).map((p, k) => typeof p === 'string' ? { label: `Text ${k + 1}`, text: p } : { label: String(p.label || `Text ${k + 1}`), text: String(p.text || '') }) : [],
@@ -290,7 +310,12 @@
     }
     const noExp = questions.filter(q => q._noExplanation).length;
     if (noExp) warnings.push(`${noExp} question(s) have no explanation; review will show the answer only.`);
-    questions.forEach(q => delete q._noExplanation);
+    const assumed = questions.filter(q => q._satAssumed).length;
+    metadata.sat_difficulty_assumed = assumed > 0;
+    if (assumed) warnings.push(`${assumed} question(s) have no SAT difficulty level (sat_difficulty); assumed Medium. Set the real level in Library → Manage banks.`);
+    const levelsUsed = [...new Set(questions.map(q => q.satLevel))];
+    metadata.sat_levels = LEVELS.filter(l => levelsUsed.includes(l));
+    for (const q of questions) { q.rank = LEVELS.indexOf(q.satLevel) * 3 + LEVELS.indexOf(q.subLevel); delete q._noExplanation; }
 
     const key = opts.key || bankKey(metadata, opts.filename);
     metadata.id = key;
@@ -321,11 +346,15 @@
   /** Serialize a normalized bank back to the canonical JSON contract. */
   function toCanonical(bank) {
     const strip = p => { const c = { ...p }; for (const k of ['uid', 'sectionId', 'sectionName', 'domainId', 'domainName', 'skillName', 'skillId']) delete c[k]; return c; };
+    const metadata = { ...bank.metadata }; delete metadata.sat_difficulty_assumed; delete metadata.sat_levels;
     return {
-      metadata: bank.metadata,
+      metadata,
       patterns: bank.patterns.map(p => ({ ...strip(p), section: p.sectionId, domain: p.domainName, skill: p.skillName })),
       questions: bank.questions.map(q => {
-        const c = { ...q }; delete c.uid; delete c.level;
+        const c = { ...q };
+        // Keep a per-question level only when the source file set one explicitly
+        if (q._satExplicit) c.sat_difficulty = q.satLevel; else delete c.sat_difficulty;
+        for (const k of ['uid', 'level', 'satLevel', 'subLevel', 'rank', '_satExplicit', '_satAssumed']) delete c[k];
         if (!c.passage) delete c.passage; if (!c.passages?.length) delete c.passages;
         if (!c.tolerance) delete c.tolerance; if (!c.choices) delete c.choices;
         return c;
@@ -333,5 +362,14 @@
     };
   }
 
-  SPS.parser = { BANDS, BAND_NAMES, LEVEL_OF, band, parseText, parseDelimited, extractJson, mergeRaw, normalize, importFiles, toCanonical };
+  /** Set (or clear, with level='') the bank-wide SAT level; drops per-question overrides. */
+  function withSatLevel(bank, level) {
+    const raw = toCanonical(bank);
+    if (level) raw.metadata.sat_difficulty = level; else delete raw.metadata.sat_difficulty;
+    for (const p of raw.patterns) { delete p.sat_difficulty; delete p.sat_level; }
+    for (const q of raw.questions) { delete q.sat_difficulty; delete q.sat_level; }
+    return normalize(raw, { key: bank.key });
+  }
+
+  SPS.parser = { BANDS, BAND_NAMES, LEVEL_OF, LEVELS, LEVEL_NAMES, satLevel, levelLabel, withSatLevel, band, parseText, parseDelimited, extractJson, mergeRaw, normalize, importFiles, toCanonical };
 })(window.SPS = window.SPS || {});

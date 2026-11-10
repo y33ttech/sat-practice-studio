@@ -142,6 +142,10 @@ textarea { resize: vertical; }
 .tname { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .tnode.leaf .tname { white-space: nowrap; font-size: 14px; }
 .pid { flex: none; font: 600 11px ui-monospace, Consolas, monospace; color: var(--muted); background: var(--surface-2); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; }
+.lvl { flex: none; display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 5px; font: 700 10.5px var(--font); color: #fff; }
+.lvl-easy { background: var(--good); } .lvl-medium { background: var(--warn); } .lvl-hard { background: var(--bad); }
+.lvl-pick { display: inline-flex; align-items: center; white-space: nowrap; margin-left: 8px; font-weight: 500; color: var(--muted); }
+.lvl-pick select { width: auto; padding: 2px 6px; font-size: 12.5px; margin-left: 4px; }
 .tcount { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
 .mbar { display: flex; height: 6px; width: 100%; border-radius: 99px; background: var(--grid); overflow: hidden; }
 .mbar i { display: block; height: 100%; }

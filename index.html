@@ -111,9 +111,15 @@
               <p class="muted small" id="builder-scope">Select skills or patterns on the left.</p>
 
               <div class="field">
-                <span class="label">Difficulty</span>
-                <div class="seg" data-filter="level">
+                <span class="label">SAT difficulty level</span>
+                <div class="seg" data-filter="sat">
                   <button data-v="easy" class="on">Easy</button><button data-v="medium" class="on">Medium</button><button data-v="hard" class="on">Hard</button>
+                </div>
+              </div>
+              <div class="field">
+                <span class="label">Within that level</span>
+                <div class="seg" data-filter="sub">
+                  <button data-v="easy" class="on">easy</button><button data-v="medium" class="on">medium</button><button data-v="hard" class="on">hard</button>
                 </div>
               </div>
               <div class="field">
@@ -182,11 +188,15 @@
               <p class="hint">Attach the College Board practice PDFs for this skill (e.g. <code>math/medium/Circles/…pdf</code>) so the LLM learns the real patterns. It is told never to copy them.</p>
             </div>
             <div class="field two">
+              <label><span class="label">SAT level of the source</span><select id="g-level"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option><option value="mixed">Mixed levels</option></select></label>
+              <label><span class="label">Steps within that level</span><select id="g-diff"><option value="three" selected>3 (easy / medium / hard)</option><option value="five">5 (easy → hard, finer)</option></select></label>
+            </div>
+            <p class="hint" style="margin:-6px 0 14px">Pick the folder your PDFs came from (e.g. <code>math/medium/…</code>). Each question then gets an SAT level plus a position within that level, e.g. <i>Medium · hard</i>.</p>
+            <div class="field two">
               <label><span class="label">Patterns</span><select id="g-patterns"><option value="0">Let the LLM find them</option><option>3</option><option>5</option><option>8</option><option>10</option><option>15</option><option>21</option></select></label>
-              <label><span class="label">Questions per pattern</span><select id="g-per"><option>10</option><option selected>20</option><option>30</option><option>50</option></select></label>
+              <label><span class="label">Questions per pattern</span><select id="g-per"><option>9</option><option>15</option><option>21</option><option selected>30</option><option>45</option><option>50</option></select></label>
             </div>
             <div class="field two">
-              <label><span class="label">Difficulty scale</span><select id="g-diff"><option value="five">5 progressive bands</option><option value="three">Easy / Medium / Hard</option></select></label>
               <label id="g-spr-wrap"><span class="label">Student-response share</span><select id="g-spr"><option value="0">0% (all multiple choice)</option><option value="25">25%</option><option value="30" selected>30%</option><option value="40">40%</option></select></label>
             </div>
             <div class="field two">

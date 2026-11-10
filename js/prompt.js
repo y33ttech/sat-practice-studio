@@ -7,7 +7,14 @@
 
   const DIFF_PLANS = {
     five: { label: '5 progressive bands', bands: ['easy', 'easy-medium', 'medium', 'medium-hard', 'hard'] },
-    three: { label: '3 levels (easy / medium / hard)', bands: ['easy', 'medium', 'hard'] }
+    three: { label: '3 steps (easy / medium / hard)', bands: ['easy', 'medium', 'hard'] }
+  };
+
+  const LV = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
+  const LEVEL_HINT = {
+    easy: 'one or two direct steps, familiar wording, little disguise.',
+    medium: 'two or three steps, some translation from context or a mild twist.',
+    hard: 'multi-step reasoning, disguised structure, abstract or unfamiliar framing, close distractors.'
   };
 
   function difficultyTable(per, plan) {
@@ -52,10 +59,10 @@ ${mathVisualSpec().split('\n').slice(0, 1).join('\n')}
 - Line graph: \`{"type":"line_chart","categories":["2018","2019"],"series":[{"name":"City A","values":[3,5]}]}\``;
   }
 
-  function exampleQuestion(section, bankId) {
+  function exampleQuestion(section, lvl) {
     if (section === 'rw') {
       return {
-        id: 'P01-Q001', pattern_id: 'P01', number_in_pattern: 1, difficulty: 'easy', type: 'mcq',
+        id: 'P01-Q001', pattern_id: 'P01', number_in_pattern: 1, sat_difficulty: lvl, difficulty: 'easy', type: 'mcq',
         passage: 'Marine biologist Ayana Okafor found that young reef fish rely on the sound of a healthy reef to navigate. When recordings of degraded reefs were played, fewer larvae settled nearby, a result that ______ the idea that reef noise acts as a homing signal.',
         stem: 'Which choice completes the text with the most logical and precise word or phrase?',
         choices: { A: 'supports', B: 'disguises', C: 'postpones', D: 'imitates' },
@@ -65,7 +72,7 @@ ${mathVisualSpec().split('\n').slice(0, 1).join('\n')}
       };
     }
     return {
-      id: 'P01-Q001', pattern_id: 'P01', number_in_pattern: 1, difficulty: 'easy', type: 'mcq',
+      id: 'P01-Q001', pattern_id: 'P01', number_in_pattern: 1, sat_difficulty: lvl, difficulty: 'easy', type: 'mcq',
       stem: 'A cube-shaped container has no lid. Each edge is $4$ cm long. What is the total area of its five outside faces, in square centimeters?',
       choices: { A: '64', B: '80', C: '96', D: '16' },
       correct_answer: 'B', accepted_answers: [],
@@ -79,7 +86,7 @@ ${mathVisualSpec().split('\n').slice(0, 1).join('\n')}
     const meta = {
       id: o.bankId, title: o.title, section: o.section, domain: o.domain, skill: o.skill,
       description: `Original ${isRW ? 'Reading and Writing' : 'Math'} practice questions for ${o.skill}`,
-      target_questions_per_pattern: o.perPattern, generated_by: 'LLM via SAT Practice Studio prompt', version: 1
+      ...(o.satLevel === 'mixed' ? {} : { sat_difficulty: o.satLevel }), target_questions_per_pattern: o.perPattern, generated_by: 'LLM via SAT Practice Studio prompt', version: 1
     };
     const pattern = {
       id: 'P01', name: 'Short name of the recurring question pattern', section: o.section, domain: o.domain, skill: o.skill,
@@ -92,12 +99,13 @@ ${mathVisualSpec().split('\n').slice(0, 1).join('\n')}
       source_ref: o.source === 'attached' ? 'Where in the attached source this pattern appears' : '',
       expected_question_count: o.perPattern
     };
-    const json = JSON.stringify({ metadata: meta, patterns: [pattern], questions: [exampleQuestion(o.section)] }, null, 2);
+    const json = JSON.stringify({ metadata: meta, patterns: [pattern], questions: [exampleQuestion(o.section, o.satLevel === 'mixed' ? 'medium' : o.satLevel)] }, null, 2);
     const fields = [
       '- `id`: globally unique within the bank, format `P01-Q001`.',
       '- `pattern_id`: must match an id in `patterns`.',
       `- \`number_in_pattern\`: 1–${o.perPattern}, each used exactly once per pattern.`,
-      `- \`difficulty\`: one of ${DIFF_PLANS[o.diffPlan].bands.map(b => '`' + b + '`').join(', ')} (see table).`,
+      `- \`sat_difficulty\`: the official SAT difficulty level ${o.satLevel === 'mixed' ? 'of the source PDF this item is modelled on: `easy`, `medium` or `hard`' : `— always \`"${o.satLevel}"\``} (also set in \`metadata\`${o.satLevel === 'mixed' ? ' when the whole bank shares one level' : ''}).`,
+      `- \`difficulty\`: the item's position *within* that SAT level: one of ${DIFF_PLANS[o.diffPlan].bands.map(b => '`' + b + '`').join(', ')} (see table). It is relative to the SAT level: \`easy\` means the easier end of ${o.satLevel === 'mixed' ? 'that' : 'the ' + LV[o.satLevel]} level, not an SAT Easy question.`,
       isRW ? '- `type`: always `"mcq"`.' : '- `type`: `"mcq"` (four choices) or `"spr"` (student-produced numeric response).',
       '- `stem`: the question text. ' + (isRW ? 'Put the passage in `passage` / `passages`, not in `stem`.' : 'Use `$...$` for inline TeX and `$$...$$` for display math. In JSON every backslash is doubled: `"$\\\\frac{3}{4}$"`.'),
       '- `choices`: object with exactly the keys `A`, `B`, `C`, `D`; four distinct, plausible options' + (isRW ? '.' : '; omit for `spr`.'),
@@ -119,7 +127,7 @@ ${mathVisualSpec().split('\n').slice(0, 1).join('\n')}
     const total = o.patternCount > 0 ? `${o.patternCount} × ${o.perPattern} = ${o.patternCount * o.perPattern} questions` : `(number of patterns) × ${o.perPattern} questions`;
     const sourceBlock = o.source === 'attached'
       ? `## Source material
-I have attached official SAT practice questions for **${o.skill}** (for example the "No correct answers or explanations" and "With correct answers and explanations" PDFs, at ${o.levels.join('/')} difficulty). Use them ONLY to learn the patterns, style, difficulty, and wording conventions:
+I have attached official SAT practice questions for **${o.skill}** (for example the "No correct answers or explanations" and "With correct answers and explanations" PDFs, ${o.satLevel === 'mixed' ? 'from several SAT difficulty folders' : `from the **${LV[o.satLevel]}** SAT difficulty level (the \`${o.section === 'rw' ? 'reading and writing' : 'math'}/${o.satLevel}/${o.skill}/\` folder)`}). Use them ONLY to learn the patterns, style, difficulty, and wording conventions:
 - Inspect every question, including figures, tables, and graphs (look at them visually; do not rely only on extracted text).
 - Never copy a source question, passage, or sentence. Every generated item must be newly written with new numbers, contexts, and wording.
 - Group source questions into a pattern only when the solving strategy is essentially the same. Do not split patterns just because the context or numbers change; do not merge different solving tasks just because they share a topic.`
@@ -143,9 +151,13 @@ ${sourceBlock}
 ${patternLine}
 Generate **exactly ${o.perPattern} questions per pattern** → ${total}.
 
-Within every pattern, difficulty progresses as follows (it restarts for each pattern):
+## Difficulty — two levels
+1. **SAT level (\`sat_difficulty\`)** — ${o.satLevel === 'mixed' ? 'the official College Board level of the source batch each item is modelled on (`easy`, `medium`, `hard`). Keep each pattern’s items at the level of its source questions.' : `every item in this bank is SAT **${LV[o.satLevel]}** level, like the attached/reference questions. Match their real difficulty: ${LV[o.satLevel]} means ${LEVEL_HINT[o.satLevel]}`}
+2. **Within-level difficulty (\`difficulty\`)** — the source batch still varies, so spread items across the lower, middle and upper part of ${o.satLevel === 'mixed' ? 'their' : 'the ' + LV[o.satLevel]} level. Within every pattern it progresses as follows (it restarts for each pattern):
 
 ${difficultyTable(o.perPattern, o.diffPlan)}
+
+An item labelled \`easy\` here is "${o.satLevel === 'mixed' ? 'its SAT' : LV[o.satLevel]} level, easier end" — never easier than the SAT level itself.
 
 Harder items should be ${isRW ? 'longer, denser, or more subtle versions of the *same* pattern (closer distractors, more complex syntax or vocabulary), not a different skill.' : 'better-disguised or multi-step versions of the *same* pattern, not unrelated mathematics.'}${isRW ? '' : ` Use roughly ${o.sprShare}% student-produced response (\`spr\`) items where the answer is a single number; the rest are four-option multiple choice.`}
 
@@ -173,6 +185,7 @@ ${workflow(o)}
 
 # SELF-CHECK BEFORE EACH OUTPUT
 - Count: each pattern has exactly ${o.perPattern} items numbered 1–${o.perPattern}; difficulty counts match the table.
+- ${o.satLevel === 'mixed' ? 'Every item has `sat_difficulty` set to the level of its source.' : `Every item has \`"sat_difficulty": "${o.satLevel}"\` and is genuinely SAT ${LV[o.satLevel]} level.`}
 - Every mcq has A–D and a single-letter correct_answer${isRW ? '' : '; every spr answer is a plain number'}.
 - IDs are unique; every pattern_id exists in \`patterns\`.
 - ${isRW ? 'No `$` signs in passages.' : 'TeX is valid and backslashes are doubled for JSON.'}
@@ -193,7 +206,7 @@ If you cannot finish within one reply, stop at a complete question object and sa
     return `Output **CSV only** (RFC 4180: quote any cell containing commas, quotes, or line breaks; double embedded quotes). One question per row with this exact header:
 
 \`\`\`
-id,pattern_id,pattern_name,section,domain,skill,number_in_pattern,difficulty,type,${o.section === 'rw' ? 'passage,' : ''}stem,option_a,option_b,option_c,option_d,correct_answer,accepted_answers_json,visual_json,${o.section === 'rw' ? 'rationale,pattern_tip' : 'fast_method,hand_solution,desmos_method,pattern_tip'}
+id,pattern_id,pattern_name,section,domain,skill,number_in_pattern,sat_difficulty,difficulty,type,${o.section === 'rw' ? 'passage,' : ''}stem,option_a,option_b,option_c,option_d,correct_answer,accepted_answers_json,visual_json,${o.section === 'rw' ? 'rationale,pattern_tip' : 'fast_method,hand_solution,desmos_method,pattern_tip'}
 \`\`\`
 - \`accepted_answers_json\` and \`visual_json\` hold JSON text (e.g. \`["3/4","0.75"]\`), or are empty.
 - spr rows leave option_a–option_d empty.`;
@@ -203,7 +216,7 @@ id,pattern_id,pattern_name,section,domain,skill,number_in_pattern,difficulty,typ
   }
 
   function buildBatch(o, b) {
-    return `Continue the ${o.skill} bank. Output ONLY a JSON array of question objects for pattern **${b.pattern}**, \`number_in_pattern\` **${b.from}–${b.to}**, using the same contract as before (ids \`${b.pattern}-Q${String(b.from).padStart(3, '0')}\` … \`${b.pattern}-Q${String(b.to).padStart(3, '0')}\`). Follow the difficulty table exactly. Verify every answer before writing it. No prose, no code fences.`;
+    return `Continue the ${o.skill} bank. Output ONLY a JSON array of question objects for pattern **${b.pattern}**, \`number_in_pattern\` **${b.from}–${b.to}**, using the same contract as before${o.satLevel === 'mixed' ? '' : ` (\`"sat_difficulty": "${o.satLevel}"\` on every item)`} (ids \`${b.pattern}-Q${String(b.from).padStart(3, '0')}\` … \`${b.pattern}-Q${String(b.to).padStart(3, '0')}\`). Follow the difficulty table exactly. Verify every answer before writing it. No prose, no code fences.`;
   }
 
   function buildRepair(report, fileHint) {
@@ -221,14 +234,14 @@ Rules reminder: mcq needs choices A–D and a single-letter correct_answer; spr 
     const dom = sec.domains[0];
     return {
       section, domain: dom.name, skill: dom.skills[0], title: '', bankId: '',
-      source: 'attached', levels: ['easy', 'medium', 'hard'], patternCount: 0, perPattern: 20,
-      diffPlan: 'five', sprShare: 30, format: 'json', batchSize: 10
+      source: 'attached', satLevel: 'medium', patternCount: 0, perPattern: 30,
+      diffPlan: 'three', sprShare: 30, format: 'json', batchSize: 10
     };
   }
   function finalize(o) {
     const sec = o.section === 'rw' ? 'rw' : 'math';
-    o.bankId = (o.bankId || `${sec}-${taxonomy.slug(o.skill)}`).slice(0, 48);
-    o.title = o.title || `SAT ${sec === 'rw' ? 'R&W' : 'Math'} — ${o.skill}`;
+    o.bankId = (o.bankId || `${sec}-${taxonomy.slug(o.skill).slice(0, 36)}${o.satLevel && o.satLevel !== 'mixed' ? '-' + o.satLevel : ''}`).slice(0, 48);
+    o.title = o.title || `SAT ${sec === 'rw' ? 'R&W' : 'Math'} — ${o.skill}${o.satLevel && o.satLevel !== 'mixed' ? ` (${LV[o.satLevel]})` : ''}`;
     return o;
   }
 

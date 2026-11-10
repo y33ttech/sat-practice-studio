@@ -63,7 +63,7 @@ Users' saved data survives updates. Banks are stored in their canonical form and
 | `js/prompt.js` | Prompt builder: main prompt, follow-up batch prompts, repair prompts |
 | `js/app.js`, `js/guide.js` | Views: Library, session player, results, Generate, Progress, Guide |
 | `banks/` | Example banks listed in `banks/index.json` (includes the 1,050-question Area & Volume bank) |
-| `prompts/` | Static copy of the prompt for every skill (`node tools/build_prompts.js`) |
+| `prompts/` | Static prompt for every skill × SAT level, mirroring the PDF folders (`node tools/build_prompts.js`) |
 | `schema/question-bank.schema.json` | JSON Schema of the bank format |
 | `examples/` | CSV example |
 | `tools/` | `validate.js` (CLI validator/merger), `smoke_test.js`, `build_prompts.js` |
@@ -72,7 +72,7 @@ Users' saved data survives updates. Banks are stored in their canonical form and
 
 ```json
 {
-  "metadata": { "id": "math-circles", "title": "SAT Math — Circles", "section": "math",
+  "metadata": { "id": "math-circles-medium", "title": "SAT Math — Circles (Medium)", "section": "math", "sat_difficulty": "medium",
                 "domain": "Geometry and Trigonometry", "skill": "Circles" },
   "patterns": [ { "id": "P01", "name": "Arc length from central angle", "recognition": "…" } ],
   "questions": [
@@ -86,7 +86,7 @@ Users' saved data survives updates. Banks are stored in their canonical form and
 - `type`: `mcq` (A–D) or `spr` (numeric; fractions and decimals are compared numerically).
 - Reading & Writing items use `passage` (or `passages` for cross-text pairs). Light markup is supported: `**bold**`, `*italic*`, `__underline__`, `- ` bullets.
 - `visual`: `table`, `coordinate_plane` (lines, `curves` with `fn`, points, segments, circles, polygons), `scatter`, `bar_chart`, `histogram`, `line_chart`, `geometry`, `image`.
-- Difficulty: `easy`, `easy-medium`, `medium`, `medium-hard`, `hard`. The old `hard-very-hard` is accepted too.
+- **Difficulty has two levels.** `sat_difficulty` is the official SAT level of the source batch (`easy` / `medium` / `hard`, i.e. which `math/<level>/<skill>/` folder the PDFs came from), usually set once in `metadata`. `difficulty` is the position *within* that level (`easy` / `medium` / `hard`; the 5-step scale and `hard-very-hard` also work). Questions are ordered globally Easy·easy → … → Hard·hard. Banks without a level are assumed Medium and can be corrected in *Manage banks*.
 - Progress is keyed by `metadata.id` + question `id`. Keep both stable when you re-import an updated bank.
 
 The full reference is on the **Guide** page and in `schema/`.

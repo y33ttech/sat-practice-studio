@@ -13,7 +13,7 @@
   <li><b>Pick a skill</b> on <a href="#/generate">Generate</a>. Skills follow the Digital SAT: Section → Domain → Skill (for example Math → Geometry and Trigonometry → Circles). The builder writes a full prompt with the exact JSON contract this app reads.</li>
   <li><b>Run it in any LLM</b> (ChatGPT, Claude, Gemini…). Attach the official practice PDFs for that skill if you have them (for example <code>math/medium/Circles/With correct answers and explanations.pdf</code>). The LLM learns the patterns from them but is told to write only original questions. The prompt asks for the pattern list first, then batches of questions, so long banks don't get cut off.</li>
   <li><b>Validate &amp; merge.</b> Drop every reply file (or paste each reply) into step 3 on the Generate page. They're merged into one bank and checked: counts per pattern and difficulty, duplicate IDs, answer keys, answer choices, and number formats. If anything's wrong, <i>Copy repair prompt</i> gives you a ready-made message to send back to the LLM.</li>
-  <li><b>Practise.</b> Add the bank to your library and choose a section, domain, skill, or individual patterns. You can filter by difficulty and by new, missed, or flagged questions, and run in practice mode (check each answer) or test mode (answers at the end).</li>
+  <li><b>Practise.</b> Add the bank to your library and choose a section, domain, skill, or individual patterns. You can filter by SAT level and by difficulty within that level and by new, missed, or flagged questions, and run in practice mode (check each answer) or test mode (answers at the end).</li>
 </ol>
 <p>You can keep many banks at once, for example one per skill. Each one appears in the right place in the library tree.</p>
 
@@ -31,7 +31,7 @@
   ],
   "questions": [
     { "id": "P01-Q001", "pattern_id": "P01", "number_in_pattern": 1,
-      "difficulty": "easy", "type": "mcq",
+      "sat_difficulty": "medium", "difficulty": "easy", "type": "mcq",
       "stem": "A circle has radius $6$. What is the length of an arc with central angle $\\\\frac{\\\\pi}{3}$?",
       "choices": { "A": "$\\\\pi$", "B": "$2\\\\pi$", "C": "$3\\\\pi$", "D": "$6\\\\pi$" },
       "correct_answer": "B",
@@ -51,7 +51,8 @@
 <tr><td><code>choices</code></td><td>mcq</td><td><code>{"A":…,"B":…,"C":…,"D":…}</code></td></tr>
 <tr><td><code>correct_answer</code></td><td>yes</td><td>The letter for mcq. A number for spr (<code>"3/4"</code>, <code>"-2"</code>, <code>".25"</code>).</td></tr>
 <tr><td><code>accepted_answers</code></td><td>no</td><td>Other accepted spr forms. Fractions and decimals are compared numerically, and truncated or rounded repeating decimals are accepted as on the SAT.</td></tr>
-<tr><td><code>difficulty</code></td><td>no</td><td><code>easy</code>, <code>easy-medium</code>, <code>medium</code>, <code>medium-hard</code>, <code>hard</code>. The filter groups them into Easy / Medium / Hard.</td></tr>
+<tr><td><code>sat_difficulty</code></td><td>recommended</td><td>The <b>official SAT level</b> of the source batch: <code>easy</code>, <code>medium</code> or <code>hard</code> (the folder the PDFs came from, e.g. <code>math/medium/…</code>). Usually set once in <code>metadata</code>. Missing levels are assumed Medium; fix them in <i>Library → Manage banks</i>.</td></tr>
+<tr><td><code>difficulty</code></td><td>no</td><td>Position <b>within</b> that SAT level: <code>easy</code>, <code>medium</code>, <code>hard</code> (5-step <code>easy-medium</code> / <code>medium-hard</code> also work). A <i>Medium · hard</i> question is the hard end of the SAT Medium level, still easier than a <i>Hard · easy</i> one.</td></tr>
 <tr><td><code>explanation</code></td><td>no</td><td>Any of <code>fast_method</code>, <code>hand_solution</code>, <code>desmos_method</code>, <code>rationale</code>, <code>distractors</code>, <code>pattern_tip</code>.</td></tr>
 <tr><td><code>visual</code></td><td>no</td><td>A figure object (see below) or <code>null</code>.</td></tr>
 </tbody></table>

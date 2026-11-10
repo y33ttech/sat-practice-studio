@@ -9,7 +9,7 @@
   const state = {
     banks: [], qIndex: new Map(), pIndex: new Map(), tree: null,
     selected: new Set(), expanded: new Set(['s:math', 's:rw']),
-    filters: { level: new Set(['easy', 'medium', 'hard']), status: 'all', type: new Set(['mcq', 'spr']) },
+    filters: { sat: new Set(['easy', 'medium', 'hard']), sub: new Set(['easy', 'medium', 'hard']), status: 'all', type: new Set(['mcq', 'spr']) },
     search: '', session: null, tick: null, showTimer: true, reviewFilter: 'all',
     validator: { files: [], bank: null }, examples: null
   };
@@ -111,11 +111,13 @@
         for (const k of d.kids) {
           const kOpen = state.expanded.has(k.key) || !!q;
           const banksInSkill = new Set(k.patterns.map(u => state.pIndex.get(u).bank.key));
-          const pats = k.patterns.filter(u => { const e = state.pIndex.get(u); return matchesSearch(`${k.name} ${d.name} ${e.pattern.name} ${e.pattern.id} ${e.bank.metadata.title}`); });
+          const levelsOf = e => parser.LEVELS.filter(l => e.questions.some(q => q.satLevel === l));
+          const pats = k.patterns.filter(u => { const e = state.pIndex.get(u); return matchesSearch(`${k.name} ${d.name} ${e.pattern.name} ${e.pattern.id} ${e.bank.metadata.title} ${levelsOf(e).join(' ')}`); });
           if (!pats.length) continue;
           const pRows = kOpen ? pats.map(u => {
             const e = state.pIndex.get(u), st = statsFor([u]);
-            return `<div class="tnode leaf" role="treeitem"><label class="tlabel"><input type="checkbox" data-sel="${esc(u)}" ${state.selected.has(u) ? 'checked' : ''}><span class="pid">${esc(e.pattern.id)}</span><span class="tname">${esc(e.pattern.name)}${banksInSkill.size > 1 ? `<small class="muted"> · ${esc(e.bank.metadata.title)}</small>` : ''}</span></label><span class="tcount">${st.seen}/${st.total}</span>${bar(st)}<button class="link-btn tiny" data-info="${esc(u)}" title="Pattern details" aria-label="Pattern details">ⓘ</button></div>`;
+            const tags = levelsOf(e).map(l => `<span class="lvl lvl-${l}" title="SAT ${parser.LEVEL_NAMES[l]} level${e.bank.metadata.sat_difficulty_assumed ? ' (assumed — set it in Manage banks)' : ''}">${parser.LEVEL_NAMES[l][0]}${e.bank.metadata.sat_difficulty_assumed ? '?' : ''}</span>`).join('');
+            return `<div class="tnode leaf" role="treeitem"><label class="tlabel"><input type="checkbox" data-sel="${esc(u)}" ${state.selected.has(u) ? 'checked' : ''}><span class="pid">${esc(e.pattern.id)}</span>${tags}<span class="tname">${esc(e.pattern.name)}${banksInSkill.size > 1 ? `<small class="muted"> · ${esc(e.bank.metadata.title)}</small>` : ''}</span></label><span class="tcount">${st.seen}/${st.total}</span>${bar(st)}<button class="link-btn tiny" data-info="${esc(u)}" title="Pattern details" aria-label="Pattern details">ⓘ</button></div>`;
           }).join('') : '';
           dInner.push(treeNode(k, pats, kOpen, 'skill', pRows));
         }
@@ -144,7 +146,7 @@
     for (const uid of state.selected) {
       const e = state.pIndex.get(uid); if (!e) continue;
       for (const q of e.questions) {
-        if (!f.level.has(q.level) || !f.type.has(q.type)) continue;
+        if (!f.sat.has(q.satLevel) || !f.sub.has(q.subLevel) || !f.type.has(q.type)) continue;
         const pr = P.get(q.uid);
         if (f.status === 'unseen' && pr && pr.attempts) continue;
         if (f.status === 'missed' && P.status(q.uid) !== 'missed') continue;
@@ -175,10 +177,10 @@
     const e = state.pIndex.get(uid); if (!e) return;
     const p = e.pattern, st = statsFor([uid]);
     const rows = [['Recognize it', p.recognition], ['Formula', p.formula], ['What to do', p.skill_description || (taxonomy.locate({ skill: p.skill }).custom ? p.skill : '')], ['Fastest method', p.fastest_method], ['Desmos', p.desmos_guidance], ['Common mistakes', Array.isArray(p.common_mistakes) ? p.common_mistakes.join(' · ') : p.common_mistakes], ['Source', p.source_ref]].filter(r => r[1]);
-    const byLevel = ['easy', 'medium', 'hard'].map(l => `${l}: ${e.questions.filter(q => q.level === l).length}`).join(' · ');
+    const byLevel = parser.LEVELS.map(L => { const qs = e.questions.filter(q => q.satLevel === L); return qs.length ? `<b>${parser.LEVEL_NAMES[L]}</b> level: ${parser.LEVELS.map(l => `${l} ${qs.filter(q => q.subLevel === l).length}`).join(', ')}` : ''; }).filter(Boolean).join('<br>');
     openModal(`${p.id} · ${p.name}`, `<p class="muted small">${esc(p.sectionName)} › ${esc(p.domainName)} › ${esc(p.skillName)} — ${esc(e.bank.metadata.title)}</p>
       <dl class="deflist">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${rich(v)}</dd>`).join('')}</dl>
-      <p class="small"><b>${st.total}</b> questions (${byLevel}). Seen ${st.seen}, correct ${st.correct}, missed ${st.missed}, flagged ${st.flagged}.</p>`,
+      <p class="small"><b>${st.total}</b> questions.<br>${byLevel}<br> Seen ${st.seen}, correct ${st.correct}, missed ${st.missed}, flagged ${st.flagged}.</p>`,
       [{ label: 'Practise this pattern', cls: 'primary', onClick: () => { state.selected = new Set([uid]); closeModal(); renderLibrary(); startSession(); } }]);
     if (p.sectionId !== 'rw') typeset($('modal-body'));
   }
@@ -238,12 +240,24 @@
     const body = state.banks.map(b => {
       const st = statsFor(b.patterns.map(p => p.uid));
       const issues = b.report.errors.length + b.report.warnings.length;
-      return `<div class="bank-row"><div><strong>${esc(b.metadata.title)}</strong><div class="small muted">${fmt.format(b.questions.length)} questions · ${b.patterns.length} patterns · id <code>${esc(b.key)}</code> · ${st.seen} answered${issues ? ` · <button class="link-btn" data-bank-report="${esc(b.key)}">${issues} note${issues === 1 ? '' : 's'}</button>` : ''}</div></div>
+      const lv = b.metadata.sat_levels || [];
+      const mixed = lv.length > 1 && !b.metadata.sat_difficulty_assumed;
+      const cur = b.metadata.sat_difficulty_assumed ? '' : mixed ? 'mixed' : lv[0];
+      const levelSel = `<label class="small lvl-pick">SAT level <select data-bank-level="${esc(b.key)}">${b.metadata.sat_difficulty_assumed ? '<option value="" selected>Not set (assumed Medium)</option>' : ''}${mixed ? '<option value="mixed" selected>Mixed (from file)</option>' : ''}${parser.LEVELS.map(l => `<option value="${l}" ${cur === l ? 'selected' : ''}>${parser.LEVEL_NAMES[l]}</option>`).join('')}</select></label>`;
+      return `<div class="bank-row"><div><strong>${esc(b.metadata.title)}</strong> ${levelSel}<div class="small muted">${fmt.format(b.questions.length)} questions · ${b.patterns.length} patterns · id <code>${esc(b.key)}</code> · ${st.seen} answered${issues ? ` · <button class="link-btn" data-bank-report="${esc(b.key)}">${issues} note${issues === 1 ? '' : 's'}</button>` : ''}</div></div>
         <div class="row gap-s"><button class="btn ghost small" data-bank-export="${esc(b.key)}">↓ JSON</button><button class="btn danger-ghost small" data-bank-remove="${esc(b.key)}">Remove</button></div></div>`;
     }).join('');
     openModal('Question banks', `<p class="small muted">Banks are stored in this browser (IndexedDB). Removing a bank keeps its progress, so re-adding the same file restores it.</p>${body}<div id="examples-modal" class="examples"></div>`,
       [{ label: '+ Add banks', cls: 'primary', onClick: () => $('file-input').click() }]);
     renderExamples($('examples-modal'));
+  }
+  async function setBankLevel(key, level) {
+    const i = state.banks.findIndex(x => x.key === key); if (i < 0 || !parser.LEVELS.includes(level)) return;
+    const updated = parser.withSatLevel(state.banks[i], level);
+    state.banks[i] = updated;
+    await storage.banks.put({ key, filename: key + '.json', importedAt: Date.now(), raw: parser.toCanonical(updated) });
+    rebuildIndex(); renderLibrary(); manageBanks();
+    toast(`“${updated.metadata.title}” is now SAT ${parser.LEVEL_NAMES[level]} level. Progress is unchanged.`);
   }
   function showBankReport(key) {
     const b = state.banks.find(x => x.key === key); if (!b) return;
@@ -297,8 +311,7 @@
       if (order === 'progressive' && n && n < qs.length) qs = shuffle(qs); // sample across all levels, then order
       if (n) qs = qs.slice(0, n);
       if (order === 'progressive') {
-        const lv = { easy: 0, medium: 1, hard: 2 };
-        qs = [...qs].sort((a, b) => lv[a.level] - lv[b.level] || (a.number_in_pattern ?? 0) - (b.number_in_pattern ?? 0));
+        qs = [...qs].sort((a, b) => a.rank - b.rank || (a.number_in_pattern ?? 0) - (b.number_in_pattern ?? 0));
       }
     }
     const timer = $('opt-timer').value;
@@ -334,7 +347,8 @@
     $('t-body').classList.toggle('single', !twoPane);
     $('t-body').classList.toggle('no-math', isRW);
     $('t-num').textContent = s.index + 1;
-    $('t-diff').textContent = parser.BAND_NAMES[q.difficulty] || '';
+    $('t-diff').textContent = parser.levelLabel(q);
+    $('t-diff').title = `SAT ${parser.LEVEL_NAMES[q.satLevel]} level, ${q.subLevel} within that level`;
     $('t-pattern').hidden = !s.showPattern; $('t-pattern').textContent = `${pattern.id} · ${pattern.name}`;
     const flagged = !!s.flags[q.uid];
     $('t-flag').classList.toggle('on', flagged); $('t-flag').setAttribute('aria-pressed', flagged);
@@ -516,7 +530,7 @@
       const e = state.qIndex.get(q.uid), isRW = e.pattern.sectionId === 'rw', a = answerOf(q.uid), ok = grading.grade(q, a);
       const passage = q.passages.length ? q.passages.map(p => `<div class="passage"><div class="passage-label">${esc(p.label)}</div>${rich(p.text, true)}</div>`).join('') : q.passage ? `<div class="passage">${rich(q.passage, isRW)}</div>` : '';
       const choices = q.type === 'mcq' ? `<ol class="review-choices">${'ABCD'.split('').map(L => `<li class="${L === q.correct_answer ? 'is-correct' : L === a ? 'is-wrong' : ''}"><b>${L}.</b> ${rich(q.choices[L])}</li>`).join('')}</ol>` : '';
-      return `<article class="review ${isRW ? 'no-math' : ''}"><header><span class="small muted">#${i + 1} · ${esc(e.pattern.id)} ${esc(e.pattern.name)} · ${esc(parser.BAND_NAMES[q.difficulty])}</span><span class="tag ${ok ? 'good' : 'bad'}">${ok ? '✓ Correct' : a ? '✕ Incorrect' : '— Blank'}</span></header>${passage}<div class="stem">${rich(q.stem, isRW)}</div>${visuals.render(q.visual)}${choices}<p class="small"><b>Your answer:</b> ${esc(a || '—')} · <b>Correct:</b> ${rich(grading.displayAnswer(q))}</p><div class="explain">${explanationHtml(q, isRW)}</div></article>`;
+      return `<article class="review ${isRW ? 'no-math' : ''}"><header><span class="small muted">#${i + 1} · ${esc(e.pattern.id)} ${esc(e.pattern.name)} · ${esc(parser.levelLabel(q))}</span><span class="tag ${ok ? 'good' : 'bad'}">${ok ? '✓ Correct' : a ? '✕ Incorrect' : '— Blank'}</span></header>${passage}<div class="stem">${rich(q.stem, isRW)}</div>${visuals.render(q.visual)}${choices}<p class="small"><b>Your answer:</b> ${esc(a || '—')} · <b>Correct:</b> ${rich(grading.displayAnswer(q))}</p><div class="explain">${explanationHtml(q, isRW)}</div></article>`;
     }).join('') : '<p class="muted">Nothing here.</p>';
     typeset($('r-list'));
   }
@@ -525,7 +539,7 @@
     download(`sat-results-${today()}.json`, JSON.stringify({
       started: new Date(s.started).toISOString(), ended: new Date(s.ended).toISOString(), mode: s.mode,
       correct: qs.filter(q => grading.grade(q, answerOf(q.uid))).length, total: qs.length,
-      responses: qs.map((q, i) => { const e = state.qIndex.get(q.uid); return { n: i + 1, bank: e.bank.key, id: q.id, pattern: e.pattern.name, skill: e.pattern.skillName, difficulty: q.difficulty, answer: answerOf(q.uid) ?? null, correct_answer: q.correct_answer, correct: grading.grade(q, answerOf(q.uid)), flagged: !!s.flags[q.uid] }; })
+      responses: qs.map((q, i) => { const e = state.qIndex.get(q.uid); return { n: i + 1, bank: e.bank.key, id: q.id, pattern: e.pattern.name, skill: e.pattern.skillName, sat_difficulty: q.satLevel, difficulty: q.difficulty, answer: answerOf(q.uid) ?? null, correct_answer: q.correct_answer, correct: grading.grade(q, answerOf(q.uid)), flagged: !!s.flags[q.uid] }; })
     }, null, 2));
   }
 
@@ -553,10 +567,10 @@
       skill: custom ? ($('g-custom').value.trim() || 'Custom skill') : $('g-skill').value,
       source: $('g-source').querySelector('.on')?.dataset.v || 'attached',
       patternCount: Number($('g-patterns').value) || 0, perPattern: Number($('g-per').value) || 20,
-      diffPlan: $('g-diff').value, sprShare: $('g-section').value === 'rw' ? 0 : Number($('g-spr').value), format: $('g-format').value,
+      diffPlan: $('g-diff').value, satLevel: $('g-level').value, sprShare: $('g-section').value === 'rw' ? 0 : Number($('g-spr').value), format: $('g-format').value,
       batchSize: Number($('g-batch').value) || 10, title: ''
     };
-    const auto = `${gen.section}-${taxonomy.slug(gen.skill)}`.slice(0, 48);
+    const auto = SPS.prompt.finalize({ ...gen, bankId: '' }).bankId;
     if (!$('g-bankid').value || $('g-bankid').value === prevAuto) $('g-bankid').value = auto;
     gen.bankIdAuto = auto; gen.bankId = taxonomy.slug($('g-bankid').value) || auto;
     SPS.prompt.finalize(gen);
@@ -595,18 +609,18 @@
     if (!v.files.length) { $('v-report').innerHTML = ''; return; }
     if (v.error || !v.bank) { $('v-report').innerHTML = `<div class="issues bad pad">${esc(v.error || 'No usable data yet.')}</div>`; return; }
     const b = v.bank, r = b.report;
-    const levels = ['easy', 'medium', 'hard'];
+    const levels = parser.LEVELS;
     const rows = b.patterns.map(p => {
       const qs = b.questions.filter(q => q.pattern_id === p.id);
       const exp = p.expected_question_count;
-      return `<tr><td><b>${esc(p.id)}</b></td><td>${esc(p.name)}<div class="small muted">${esc(p.skillName)}</div></td>${levels.map(l => `<td class="num">${qs.filter(q => q.level === l).length}</td>`).join('')}<td class="num">${qs.filter(q => q.type === 'spr').length}</td><td class="num ${exp && qs.length !== exp ? 'warn' : 'ok'}">${qs.length}${exp ? ' / ' + exp : ''}</td></tr>`;
+      return `<tr><td><b>${esc(p.id)}</b></td><td>${esc(p.name)}<div class="small muted">${esc(p.skillName)}</div></td><td>${esc([...new Set(qs.map(q => parser.LEVEL_NAMES[q.satLevel]))].join(', '))}</td>${levels.map(l => `<td class="num">${qs.filter(q => q.subLevel === l).length}</td>`).join('')}<td class="num">${qs.filter(q => q.type === 'spr').length}</td><td class="num ${exp && qs.length !== exp ? 'warn' : 'ok'}">${qs.length}${exp ? ' / ' + exp : ''}</td></tr>`;
     }).join('');
     $('v-report').innerHTML = `<div class="v-summary"><div><strong>${esc(b.metadata.title)}</strong> <code>${esc(b.key)}</code><div class="small muted">${r.valid} valid of ${r.total} questions · ${b.patterns.length} patterns</div></div>
       <div class="row gap-s wrap"><button class="btn ghost small" id="v-download">↓ Merged JSON</button>${r.errors.length || r.warnings.length ? '<button class="btn ghost small" id="v-repair">Copy repair prompt</button>' : ''}<button class="btn primary small" id="v-add">Add to library →</button></div></div>
-      <div class="table-scroll"><table class="data-table compact"><thead><tr><th>ID</th><th>Pattern</th><th>Easy</th><th>Med</th><th>Hard</th><th>SPR</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="table-scroll"><table class="data-table compact"><thead><tr><th>ID</th><th>Pattern</th><th>SAT level</th><th title="Within the SAT level">easy</th><th title="Within the SAT level">medium</th><th title="Within the SAT level">hard</th><th>SPR</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></div>
       ${reportHtml(r)}
       <details class="preview"><summary>Preview first questions</summary><div id="v-preview"></div></details>`;
-    $('v-preview').innerHTML = b.questions.slice(0, 3).map(q => { const p = b.patterns.find(x => x.id === q.pattern_id); const isRW = p?.sectionId === 'rw'; return `<div class="review ${isRW ? 'no-math' : ''}"><div class="small muted">${esc(q.id)} · ${esc(q.type)} · ${esc(q.difficulty)}</div>${q.passage ? `<div class="passage">${rich(q.passage, isRW)}</div>` : ''}<div class="stem">${rich(q.stem, isRW)}</div>${visuals.render(q.visual)}${q.choices ? `<ol class="review-choices">${'ABCD'.split('').map(L => `<li class="${L === q.correct_answer ? 'is-correct' : ''}"><b>${L}.</b> ${rich(q.choices[L])}</li>`).join('')}</ol>` : `<p>Answer: <b>${esc(q.correct_answer)}</b></p>`}</div>`; }).join('');
+    $('v-preview').innerHTML = b.questions.slice(0, 3).map(q => { const p = b.patterns.find(x => x.id === q.pattern_id); const isRW = p?.sectionId === 'rw'; return `<div class="review ${isRW ? 'no-math' : ''}"><div class="small muted">${esc(q.id)} · ${esc(q.type)} · ${esc(parser.levelLabel(q))}</div>${q.passage ? `<div class="passage">${rich(q.passage, isRW)}</div>` : ''}<div class="stem">${rich(q.stem, isRW)}</div>${visuals.render(q.visual)}${q.choices ? `<ol class="review-choices">${'ABCD'.split('').map(L => `<li class="${L === q.correct_answer ? 'is-correct' : ''}"><b>${L}.</b> ${rich(q.choices[L])}</li>`).join('')}</ol>` : `<p>Answer: <b>${esc(q.correct_answer)}</b></p>`}</div>`; }).join('');
     typeset($('v-report'));
   }
 
@@ -747,6 +761,7 @@
     document.addEventListener('change', e => {
       const t = e.target;
       if (t.matches('[data-sel]')) { t.checked ? state.selected.add(t.dataset.sel) : state.selected.delete(t.dataset.sel); renderTree(); renderBuilder(); }
+      if (t.matches('[data-bank-level]')) { if (t.value !== 'mixed') setBankLevel(t.dataset.bankLevel, t.value); return; }
       if (t.matches('[data-group]')) { const node = findNode(t.dataset.group); const uids = nodePatterns(node); const on = checkState(uids) !== 'all'; uids.forEach(u => on ? state.selected.add(u) : state.selected.delete(u)); renderTree(); renderBuilder(); }
     });
     $('tree-search').addEventListener('input', e => { state.search = e.target.value.trim().toLowerCase(); renderTree(); });
@@ -805,7 +820,7 @@
     // Generate
     $('g-section').addEventListener('change', () => { fillDomains(); readGen(); });
     $('g-domain').addEventListener('change', () => { fillSkills(); readGen(); });
-    ['g-skill', 'g-patterns', 'g-per', 'g-diff', 'g-spr', 'g-format', 'g-batch'].forEach(id => $(id).addEventListener('change', readGen));
+    ['g-skill', 'g-patterns', 'g-per', 'g-diff', 'g-level', 'g-spr', 'g-format', 'g-batch'].forEach(id => $(id).addEventListener('change', readGen));
     ['g-custom', 'g-bankid'].forEach(id => $(id).addEventListener('input', readGen));
     $('g-copy').onclick = async () => toast((await copyText($('g-output').value)) ? 'Prompt copied. Paste it into your LLM along with the PDFs.' : 'Copy failed — select the text and copy manually.');
     $('g-download').onclick = () => download(`prompt-${gen.bankId}.md`, $('g-output').value, 'text/markdown');

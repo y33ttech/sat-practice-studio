@@ -56,6 +56,23 @@ check(merged.questions.length === 2 && merged.patterns[0].skillName === 'Circles
 const bad = S.parser.normalize({ questions: [{ id: 'x', stem: 's', type: 'mcq', choices: { A: '1', B: '2' }, correct_answer: 'A' }, { id: 'y', stem: 't', type: 'spr', correct_answer: '1' }] });
 check(bad.questions.length === 1 && bad.report.errors.length === 1, 'invalid items are skipped and reported');
 
+// 2b. Two-level difficulty: SAT level + position within it
+const lv = S.parser.normalize({ metadata: { sat_difficulty: 'medium' }, questions: [
+  { id: 'a', stem: 's', type: 'spr', correct_answer: '1', difficulty: 'easy' },
+  { id: 'b', stem: 's', type: 'spr', correct_answer: '1', difficulty: 'medium-hard', sat_difficulty: 'hard' },
+  { id: 'c', stem: 's', type: 'spr', correct_answer: '1', difficulty: 'hard-very-hard' }] });
+check(lv.questions.map(q => q.satLevel + '/' + q.subLevel).join() === 'medium/easy,hard/hard,medium/hard', 'SAT level + within-level parsing');
+check(lv.questions[0].rank < lv.questions[2].rank && lv.questions[2].rank < lv.questions[1].rank, 'rank orders Medium·hard below Hard·hard');
+const canon = S.parser.toCanonical(lv);
+check(canon.questions[1].sat_difficulty === 'hard' && canon.questions[0].sat_difficulty === undefined, 'canonical keeps only explicit per-question levels');
+const unset = S.parser.normalize({ questions: [{ id: 'a', stem: 's', type: 'spr', correct_answer: '1' }] });
+check(unset.metadata.sat_difficulty_assumed && unset.report.warnings.some(w => /sat_difficulty/.test(w)), 'missing SAT level is flagged');
+const relabel = S.parser.withSatLevel(lv, 'easy');
+check(relabel.questions.every(q => q.satLevel === 'easy') && relabel.key === lv.key, 'bank-wide SAT level override keeps the bank key');
+const av = S.parser.importFiles([{ name: 'av.json', text: fs.readFileSync(path.join(root, 'banks', 'math-area-and-volume.json'), 'utf8') }]);
+check(av.questions.every(q => q.satLevel === 'easy'), 'Area & Volume bank is SAT Easy level');
+check(['easy', 'medium', 'hard'].map(l => av.questions.filter(q => q.subLevel === l).length).join() === '420,210,420', 'Area & Volume within-level split');
+
 // 3. Numeric grading (SAT grid-in rules)
 const spr = a => ({ type: 'spr', correct_answer: a, accepted_answers: [], tolerance: 0 });
 check(S.grading.grade(spr('2/3'), '.6666') && S.grading.grade(spr('2/3'), '.6667') && S.grading.grade(spr('2/3'), '2/3'), '2/3 accepts .6666, .6667');
@@ -72,9 +89,10 @@ for (const [e, v] of [['2+3*4', 14], ['2x^2-3', 15], ['(x-1)(x+1)', 8], ['sqrt(1
 let prompts = 0;
 for (const sec of S.taxonomy.sections) for (const d of sec.domains) for (const skill of d.skills) {
   for (const format of ['json', 'csv']) {
-    const o = S.prompt.finalize({ ...S.prompt.defaults(sec.id), domain: d.name, skill, format });
+    const o = S.prompt.finalize({ ...S.prompt.defaults(sec.id), domain: d.name, skill, format, satLevel: format === 'csv' ? 'mixed' : 'hard' });
     const txt = S.prompt.buildMain(o);
-    check(txt.includes(skill) && txt.includes('correct_answer') && txt.length > 3000, `prompt for ${skill} (${format})`);
+    check(txt.includes(skill) && txt.includes('correct_answer') && txt.includes('sat_difficulty') && txt.length > 3000, `prompt for ${skill} (${format})`);
+    check(!/undefined|\$\{/.test(txt), `prompt for ${skill} (${format}) has an unfilled placeholder`);
     if (format === 'json') { const m = txt.match(/\n(\{\n  "metadata"[\s\S]*?\n\})\n/); check(m && JSON.parse(m[1]).questions.length === 1, `prompt example JSON parses for ${skill}`); }
     prompts++;
   }
