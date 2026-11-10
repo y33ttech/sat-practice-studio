@@ -28,6 +28,19 @@ for (const f of files) {
   console.log(`ok  ${f}: ${bank.questions.length} questions, ${bank.patterns.length} patterns → ${[...new Set(bank.patterns.map(p => p.skillName))].join('; ')}${bank.report.warnings.length ? ` (${bank.report.warnings.length} warnings)` : ''}`);
 }
 
+// 1b. banks/index.json lists real files whose ids match
+const manifest = JSON.parse(fs.readFileSync(path.join(root, 'banks', 'index.json'), 'utf8')).banks;
+for (const m of manifest) {
+  const p = path.join(root, 'banks', m.file);
+  if (!fs.existsSync(p)) { check(false, `banks/index.json: missing file ${m.file}`); continue; }
+  const b = S.parser.importFiles([{ name: m.file, text: fs.readFileSync(p, 'utf8') }]);
+  check(b.key === m.id, `banks/index.json: id “${m.id}” ≠ bank key “${b.key}” (the Add button would not show “Added”)`);
+}
+
+// 1c. index.html references only files that exist
+const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+for (const [, ref] of html.matchAll(/(?:src|href)="((?:js|css|assets)\/[^"?]+)/g)) check(fs.existsSync(path.join(root, ref)), `index.html references missing ${ref}`);
+
 // 2. Lenient parsing of typical LLM output
 const fenced = 'Sure! Here is the batch:\n```json\n[{"id":"P01-Q001","pattern_id":"P01","type":"mcq","stem":"x?","choices":{"A":"1","B":"2","C":"3","D":"4"},"correct_answer":"B",}]\n```\nLet me know!';
 const b1 = S.parser.importFiles([{ name: 'reply.txt', text: fenced }]);

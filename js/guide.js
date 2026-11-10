@@ -83,6 +83,7 @@
 <p><b>The LLM stopped halfway.</b> Say “continue”, or use <i>Follow-up prompt for a specific batch</i> on the Generate page. Save each reply separately and merge them.</p>
 <p><b>Is the answer key guaranteed correct?</b> No. The validator checks structure, not math. The prompt asks the LLM to solve every item, but you should still spot-check, especially the hard ones.</p>
 <p><b>Keyboard shortcuts</b> during a session: <kbd>A</kbd>–<kbd>D</kbd> choose, <kbd>←</kbd>/<kbd>→</kbd> move between questions, <kbd>F</kbd> flag, <kbd>Enter</kbd> check (practice mode).</p>
+<p class="small muted">Version ${code((window.SPS_VERSION || {}).commit || 'dev')}${(window.SPS_VERSION || {}).built ? ' · built ' + code(window.SPS_VERSION.built) : ''}</p>
 <p class="small muted">SAT® is a trademark registered by the College Board, which is not affiliated with and does not endorse this site. This is an independent practice tool.</p>`;
 
   document.addEventListener('click', e => {

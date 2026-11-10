@@ -25,6 +25,31 @@ Open <http://localhost:8000>. Opening `index.html` directly also works, but brow
 2. In the repo, go to **Settings → Pages → Build and deployment → Source: GitHub Actions**.
 3. Every push to `main` runs the smoke tests and publishes the site (`.github/workflows/pages.yml`). It will be at `https://<user>.github.io/<repo>/`.
 
+## CI/CD and updating the site
+
+`.github/workflows/pages.yml` runs on every pull request and every push:
+
+| Job | When | What it does |
+|---|---|---|
+| **Checks** | PRs and pushes | `node --check` on every script; smoke tests (import every bank, grade every answer key, render every figure, build every prompt, verify `banks/index.json` and `index.html` references); CLI validation of each bank; fails if `prompts/` is stale |
+| **Build** | pushes to `main` | Copies the site to `_site`, writes the commit and date into `js/version.js`, and adds `?v=<commit>` to every script and stylesheet URL so browsers never mix old and new files after a deploy |
+| **Deploy** | after Build | Publishes to GitHub Pages, then fetches the live site and fails if it isn't serving the new commit |
+
+Dependabot (`.github/dependabot.yml`) opens a PR each month when the Actions it uses have updates.
+
+**Typical update flow**
+
+```bash
+git checkout -b my-change
+# edit js/… or add banks/new-bank.json (+ an entry in banks/index.json)
+node tools/smoke_test.js        # same checks CI runs
+node tools/build_prompts.js     # only if you changed js/prompt.js or js/taxonomy.js
+git commit -am "…" && git push -u origin my-change   # open a PR → Checks run
+# merge the PR → site redeploys automatically
+```
+
+Users' saved data survives updates. Banks are stored in their canonical form and re-normalized by the current code on every load, and the storage keys are versioned (`sps.*.v1`). The deployed version is shown at the bottom of the Guide page.
+
 ## Repository layout
 
 | Path | What it is |

@@ -273,7 +273,7 @@
   }
   async function addExample(file) {
     try {
-      const r = await fetch('banks/' + file); if (!r.ok) throw new Error('HTTP ' + r.status);
+      const r = await fetch(`banks/${file}?v=${(window.SPS_VERSION || {}).commit || 'dev'}`); if (!r.ok) throw new Error('HTTP ' + r.status);
       const text = await r.text();
       const bank = parser.importFiles([{ name: file, text }]);
       if (await addBank(bank, file)) { rebuildIndex(); autoSelect(); closeModal(); route(); toast(`Added “${bank.metadata.title}”.`); }

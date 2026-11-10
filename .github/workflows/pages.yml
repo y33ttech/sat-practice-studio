@@ -1,4 +1,7 @@
-name: Test & deploy to GitHub Pages
+name: CI & deploy to GitHub Pages
+
+# Every pull request and push runs the checks.
+# Pushes to main (that pass) are built and published to GitHub Pages.
 
 on:
   push:
@@ -8,40 +11,76 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   test:
+    name: Checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Smoke tests (import every bank, grade every key, render every figure)
+
+      - name: Syntax check all scripts
+        run: for f in js/*.js tools/*.js; do node --check "$f" || exit 1; done
+
+      - name: Smoke tests (import every bank, grade every key, render every figure, prompt builder)
         run: node tools/smoke_test.js examples/sample-questions.csv
+
+      - name: Validate every bundled bank with the CLI validator
+        run: for f in banks/*.json; do [ "$(basename "$f")" = index.json ] || node tools/validate.js "$f" > /dev/null || { node tools/validate.js "$f"; exit 1; }; done
+
       - name: Static prompts are up to date
         run: |
           node tools/build_prompts.js
-          git diff --exit-code -- prompts || (echo "prompts/ is stale: run node tools/build_prompts.js" && exit 1)
+          git diff --exit-code -- prompts || { echo "::error::prompts/ is stale — run: node tools/build_prompts.js"; exit 1; }
 
-  deploy:
+  build:
+    name: Build site
     if: github.event_name != 'pull_request'
     needs: test
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble _site and stamp version (cache-busting)
+        run: |
+          SHA="${GITHUB_SHA::7}"
+          mkdir _site
+          tar --exclude=.git --exclude=.github --exclude=_site -cf - . | tar -xf - -C _site
+          printf "window.SPS_VERSION = { commit: '%s', built: '%s' };\n" "$SHA" "$(date -u +%Y-%m-%dT%H:%MZ)" > _site/js/version.js
+          # Give every local script/stylesheet URL a ?v=<commit> so browsers never mix old and new files.
+          sed -i -E "s#(src|href)=\"((js|css)/[^\"?]+)\"#\1=\"\2?v=${SHA}\"#g" _site/index.html
+          echo "Stamped $(grep -c "?v=${SHA}" _site/index.html) asset references with v=${SHA}"
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: .
       - id: deployment
         uses: actions/deploy-pages@v4
+      - name: Verify the live site serves this commit
+        run: |
+          URL="${{ steps.deployment.outputs.page_url }}"
+          SHA="${GITHUB_SHA::7}"
+          for i in 1 2 3 4 5 6; do
+            if curl -fsS "${URL}js/version.js?nocache=$RANDOM" | grep -q "$SHA" && curl -fsS "$URL" | grep -q "SAT Practice Studio"; then
+              echo "Live: $URL ($SHA)"; exit 0; fi
+            sleep 10
+          done
+          echo "::error::Deployed site does not serve commit $SHA"; exit 1
