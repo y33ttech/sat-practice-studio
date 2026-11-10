@@ -1,0 +1,134 @@
+{
+  "metadata": {
+    "id": "rw-sampler",
+    "title": "R&W sampler — 4 domains",
+    "section": "rw",
+    "description": "Ten original Reading & Writing questions, one or two per skill, to demonstrate passages, cross-text pairs, notes, and data figures.",
+    "target_questions_per_pattern": 0
+  },
+  "patterns": [
+    { "id": "WIC1", "name": "Precise word from sentence logic", "section": "rw", "domain": "Craft and Structure", "skill": "Words in Context", "recognition": "A blank inside a sentence; choices are single words with related meanings.", "fastest_method": "Predict a word from the logical relationship before reading the choices." },
+    { "id": "CTC1", "name": "How would Text 2's author respond", "section": "rw", "domain": "Craft and Structure", "skill": "Cross-Text Connections", "recognition": "Two short texts; question asks how one author would view a claim in the other.", "fastest_method": "Name each text's claim in five words, then compare." },
+    { "id": "TRN1", "name": "Logical transition between sentences", "section": "rw", "domain": "Expression of Ideas", "skill": "Transitions", "recognition": "Blank at the start of a sentence; choices are transition words.", "fastest_method": "Decide: same direction, contrast, cause/effect, or example." },
+    { "id": "RHS1", "name": "Use notes to accomplish a goal", "section": "rw", "domain": "Expression of Ideas", "skill": "Rhetorical Synthesis", "recognition": "Bulleted notes; the question states a specific goal.", "fastest_method": "Ignore the notes; check which choice does exactly what the goal says." },
+    { "id": "BND1", "name": "Joining independent clauses", "section": "rw", "domain": "Standard English Conventions", "skill": "Boundaries", "recognition": "Choices differ only in punctuation between two clauses.", "fastest_method": "Check whether both sides are complete sentences." },
+    { "id": "FSS1", "name": "Subject–verb agreement across interrupters", "section": "rw", "domain": "Standard English Conventions", "skill": "Form, Structure, and Sense", "recognition": "Choices are forms of the same verb.", "fastest_method": "Cross out the interrupting phrase and find the true subject." },
+    { "id": "COE1", "name": "Data that supports a claim", "section": "rw", "domain": "Information and Ideas", "skill": "Command of Evidence", "recognition": "A table or graph plus a claim; choices describe the data.", "fastest_method": "Find the exact claim, then the one choice that is both accurate and relevant." },
+    { "id": "INF1", "name": "Most logical completion", "section": "rw", "domain": "Information and Ideas", "skill": "Inferences", "recognition": "The text ends with a blank completing an argument.", "fastest_method": "Connect the premises; the answer must follow without extra assumptions." }
+  ],
+  "questions": [
+    {
+      "id": "WIC1-Q001", "pattern_id": "WIC1", "number_in_pattern": 1, "difficulty": "easy", "type": "mcq",
+      "passage": "Although early critics dismissed the composer's use of everyday street sounds as a gimmick, later listeners found the technique ______: by weaving traffic and conversation into the score, she made the city itself a member of the orchestra.",
+      "stem": "Which choice completes the text with the most logical and precise word or phrase?",
+      "choices": { "A": "inventive", "B": "unoriginal", "C": "inaudible", "D": "accidental" },
+      "correct_answer": "A",
+      "explanation": { "rationale": "“Although” sets up a contrast with “gimmick,” and the colon explains the technique positively, so “inventive” fits.", "distractors": "B repeats the critics' view; C and D contradict the deliberate weaving described.", "pattern_tip": "Contrast words like “although” tell you the blank flips the earlier opinion." },
+      "visual": null
+    },
+    {
+      "id": "WIC1-Q002", "pattern_id": "WIC1", "number_in_pattern": 2, "difficulty": "medium", "type": "mcq",
+      "passage": "Botanist Lin Okoye's survey of alpine meadows was deliberately ______: rather than sampling a few convenient plots, her team recorded every flowering plant across forty square kilometers over three summers.",
+      "stem": "Which choice completes the text with the most logical and precise word or phrase?",
+      "choices": { "A": "exhaustive", "B": "tentative", "C": "selective", "D": "hasty" },
+      "correct_answer": "A",
+      "explanation": { "rationale": "Recording every plant over a large area and long period is “exhaustive.”", "distractors": "C is the opposite of the method described; B and D are not supported.", "pattern_tip": "A colon after the blank means the next clause defines the word." },
+      "visual": null
+    },
+    {
+      "id": "CTC1-Q001", "pattern_id": "CTC1", "number_in_pattern": 1, "difficulty": "hard", "type": "mcq",
+      "passages": [
+        { "label": "Text 1", "text": "Many urban planners argue that adding bike lanes reduces car traffic. In several cities, bike commuting rose sharply within two years of new lanes opening, which planners interpret as drivers switching to bicycles." },
+        { "label": "Text 2", "text": "Transportation researcher Dana Ruiz cautions that rising bike counts alone do not show that drivers changed modes. In her study of three cities, most new cyclists had previously walked or taken buses, and car volumes on nearby streets were nearly unchanged." }
+      ],
+      "stem": "Based on the texts, how would Ruiz (Text 2) most likely respond to the planners' interpretation in Text 1?",
+      "choices": {
+        "A": "By arguing that the increase in cycling was smaller than the planners reported",
+        "B": "By noting that an increase in cycling does not by itself indicate fewer car trips",
+        "C": "By suggesting that bike lanes should be built only on streets with little car traffic",
+        "D": "By agreeing that bike lanes cause drivers to switch to bicycles in most cities"
+      },
+      "correct_answer": "B",
+      "explanation": { "rationale": "Ruiz says rising bike counts don't show drivers switched; new cyclists came from walking and buses.", "distractors": "A: she doesn't dispute the size of the increase. C: never discussed. D: contradicts her findings.", "pattern_tip": "Text 2 usually qualifies or challenges a specific inference in Text 1 — find that inference." },
+      "visual": null
+    },
+    {
+      "id": "TRN1-Q001", "pattern_id": "TRN1", "number_in_pattern": 1, "difficulty": "easy", "type": "mcq",
+      "passage": "The Atacama Desert receives almost no rainfall in most years. ______ a few of its coastal hills support lush seasonal vegetation, watered by dense fog that rolls in from the Pacific.",
+      "stem": "Which choice completes the text with the most logical transition?",
+      "choices": { "A": "Similarly,", "B": "Nevertheless,", "C": "For example,", "D": "Therefore," },
+      "correct_answer": "B",
+      "explanation": { "rationale": "Lush vegetation contrasts with the near-absence of rain, so a contrast transition is needed.", "distractors": "A and C signal continuation; D signals a result.", "pattern_tip": "Label the relationship (contrast) before looking at the choices." },
+      "visual": null
+    },
+    {
+      "id": "RHS1-Q001", "pattern_id": "RHS1", "number_in_pattern": 1, "difficulty": "medium", "type": "mcq",
+      "passage": "While researching a topic, a student has taken the following notes:\n- The Lovelace Bridge opened in 1932.\n- It was designed by engineer Marta Feld.\n- Its main span is 380 meters long.\n- The Harbor Bridge, opened in 1958, has a main span of 290 meters.\n- Both bridges cross the Elm River.",
+      "stem": "The student wants to emphasize a difference between the two bridges. Which choice most effectively uses relevant information from the notes to accomplish this goal?",
+      "choices": {
+        "A": "Both the Lovelace Bridge and the Harbor Bridge cross the Elm River.",
+        "B": "Marta Feld designed the Lovelace Bridge, which opened in 1932.",
+        "C": "The Lovelace Bridge's 380-meter main span is 90 meters longer than that of the Harbor Bridge.",
+        "D": "The Harbor Bridge opened in 1958 and crosses the Elm River."
+      },
+      "correct_answer": "C",
+      "explanation": { "rationale": "Only C compares the two bridges and states a difference.", "distractors": "A states a similarity; B and D describe a single bridge.", "pattern_tip": "Match the goal word (“difference”) exactly; accurate but off-goal choices are wrong." },
+      "visual": null
+    },
+    {
+      "id": "BND1-Q001", "pattern_id": "BND1", "number_in_pattern": 1, "difficulty": "medium", "type": "mcq",
+      "passage": "In 1911, Marie Curie became the first person to win Nobel Prizes in two different sciences ______ her first, awarded in 1903, had been in physics.",
+      "stem": "Which choice completes the text so that it conforms to the conventions of Standard English?",
+      "choices": { "A": "sciences,", "B": "sciences;", "C": "sciences", "D": "sciences, which" },
+      "correct_answer": "B",
+      "explanation": { "rationale": "Both sides of the blank are independent clauses, so a semicolon correctly joins them.", "distractors": "A is a comma splice; C is a run-on; D makes the second part ungrammatical (“which her first … had been in physics”).", "pattern_tip": "Test both sides: if each can stand alone, use a period or semicolon (or comma + FANBOYS)." },
+      "visual": null
+    },
+    {
+      "id": "FSS1-Q001", "pattern_id": "FSS1", "number_in_pattern": 1, "difficulty": "easy", "type": "mcq",
+      "passage": "The collection of hand-drawn maps, which spans four centuries and several continents, ______ now available to researchers through the library's digital archive.",
+      "stem": "Which choice completes the text so that it conforms to the conventions of Standard English?",
+      "choices": { "A": "are", "B": "were", "C": "is", "D": "have been" },
+      "correct_answer": "C",
+      "explanation": { "rationale": "The subject is the singular “collection,” and “now” calls for present tense: “is.”", "distractors": "A, B and D are plural forms that agree with “maps,” not the subject.", "pattern_tip": "Cross out “of …” phrases and commas-enclosed clauses to find the subject." },
+      "visual": null
+    },
+    {
+      "id": "COE1-Q001", "pattern_id": "COE1", "number_in_pattern": 1, "difficulty": "medium", "type": "mcq",
+      "passage": "A team of ecologists counted pollinator visits to sunflowers grown with three types of mulch. They claim that straw mulch was associated with more pollinator visits than either of the other mulch types.",
+      "stem": "Which choice most effectively uses data from the graph to support the team's claim?",
+      "choices": {
+        "A": "Sunflowers grown with bark mulch received about 30 visits per hour.",
+        "B": "Sunflowers grown with straw mulch received about 46 visits per hour, more than those grown with bark or plastic mulch.",
+        "C": "Sunflowers grown with plastic mulch received fewer visits than those grown with bark mulch.",
+        "D": "Each mulch type was associated with at least 20 visits per hour."
+      },
+      "correct_answer": "B",
+      "explanation": { "rationale": "B compares straw to both other mulches, which is exactly the claim.", "distractors": "A and C don't mention straw; D doesn't distinguish straw.", "pattern_tip": "The right choice must be accurate AND address every part of the claim." },
+      "visual": { "type": "bar_chart", "title": "Pollinator visits by mulch type", "categories": ["Straw", "Bark", "Plastic"], "values": [46, 30, 22], "y_label": "Visits per hour", "x_label": "Mulch type", "show_values": true }
+    },
+    {
+      "id": "INF1-Q001", "pattern_id": "INF1", "number_in_pattern": 1, "difficulty": "hard", "type": "mcq",
+      "passage": "Pottery fragments found at a coastal site share a distinctive glaze previously known only from a workshop 600 kilometers inland. Chemical analysis shows the clay in the fragments came from deposits near the coastal site, not from the inland region. These findings suggest that ______",
+      "stem": "Which choice most logically completes the text?",
+      "choices": {
+        "A": "the inland workshop shipped finished pottery to the coast.",
+        "B": "the glazing technique, rather than the pottery itself, traveled from inland to the coast.",
+        "C": "the coastal site was settled before the inland workshop existed.",
+        "D": "the distinctive glaze was invented independently at the coastal site."
+      },
+      "correct_answer": "B",
+      "explanation": { "rationale": "Local clay rules out shipped pots, yet the glaze matches the inland one — so the technique moved.", "distractors": "A conflicts with the clay evidence; C and D are not supported by the text.", "pattern_tip": "Combine both findings; the answer must be consistent with each one." },
+      "visual": null
+    },
+    {
+      "id": "TRN1-Q002", "pattern_id": "TRN1", "number_in_pattern": 2, "difficulty": "medium", "type": "mcq",
+      "passage": "Octopuses can change skin color in a fraction of a second. Their eyes, however, contain only one type of light receptor, suggesting they are colorblind. ______ researchers have proposed that octopuses may sense color through light-sensitive proteins in their skin.",
+      "stem": "Which choice completes the text with the most logical transition?",
+      "choices": { "A": "To explain this puzzle,", "B": "In other words,", "C": "Likewise,", "D": "In conclusion," },
+      "correct_answer": "A",
+      "explanation": { "rationale": "The final sentence offers an explanation for the puzzle of color-changing but colorblind animals.", "distractors": "B restates; C adds a similar point; D summarizes.", "pattern_tip": "When the passage sets up a contradiction, look for a transition introducing an explanation." },
+      "visual": null
+    }
+  ]
+}

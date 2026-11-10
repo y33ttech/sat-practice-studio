@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Browser-only SAT practice platform. Generate question banks with an LLM, load them locally, practice by skill and pattern, and keep your progress on your own device.">
+  <title>SAT Practice Studio</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23182447'/%3E%3Ctext x='16' y='23' font-family='Georgia,serif' font-size='20' font-weight='700' text-anchor='middle' fill='%23fff'%3ES%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/app.css">
+  <script>
+    // Apply saved theme before paint
+    try { var t = JSON.parse(localStorage.getItem('sps.settings.v1') || '{}').theme; if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+    window.MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']], processEscapes: true },
+      chtml: { fontURL: 'assets/mathjax/output/chtml/fonts/woff-v2' },
+      options: { ignoreHtmlClass: 'no-math', skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] },
+      startup: { typeset: false, ready: function () { MathJax.startup.defaultReady(); document.dispatchEvent(new Event('mathjax-ready')); } }
+    };
+  </script>
+  <script async src="assets/mathjax/tex-chtml.js"></script>
+  <script defer src="js/util.js"></script>
+  <script defer src="js/taxonomy.js"></script>
+  <script defer src="js/grading.js"></script>
+  <script defer src="js/visuals.js"></script>
+  <script defer src="js/parser.js"></script>
+  <script defer src="js/storage.js"></script>
+  <script defer src="js/prompt.js"></script>
+  <script defer src="js/guide.js"></script>
+  <script defer src="js/app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <!-- ============ Top navigation ============ -->
+  <header class="topbar" id="topbar">
+    <a class="brand" href="#/library" aria-label="SAT Practice Studio home">
+      <span class="brand-mark">S</span><span class="brand-name">SAT Practice <em>Studio</em></span>
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="#/library" data-nav="library">Library</a>
+      <a href="#/generate" data-nav="generate">Generate</a>
+      <a href="#/progress" data-nav="progress">Progress</a>
+      <a href="#/guide" data-nav="guide">Guide</a>
+    </nav>
+    <div class="topbar-actions">
+      <button class="chip-btn" id="backup-btn" title="Download a progress file">
+        <span class="dot" id="backup-dot"></span><span id="backup-label">Backup</span>
+      </button>
+      <button class="icon-btn" id="theme-btn" title="Toggle dark mode" aria-label="Toggle dark mode">◐</button>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="boot" id="boot" aria-live="polite">Loading your library…</div>
+    <!-- ============ Library ============ -->
+    <section class="view" id="view-library" hidden>
+      <div class="page">
+        <div id="resume-banner"></div>
+
+        <div id="library-empty" hidden>
+          <div class="hero">
+            <p class="eyebrow">Practice by pattern · No account · No server</p>
+            <h1>Your SAT question bank,<br><em>in your browser.</em></h1>
+            <p class="lead">Generate questions with any LLM using our prompt, drop the file here, and practice by section, skill and pattern. Your progress stays on this device: it's saved in your browser and in a progress file you can download.</p>
+          </div>
+          <div class="empty-grid">
+            <div class="card dropzone" id="dropzone-empty" tabindex="0" role="button" aria-label="Add question bank files">
+              <div class="drop-icon">⇪</div>
+              <strong>Drop question-bank files here</strong>
+              <span>JSON · JSONL · CSV · TSV, several at once</span>
+              <button class="btn primary" type="button" data-action="pick-files">Choose files</button>
+            </div>
+            <div class="card">
+              <h3>New here?</h3>
+              <ol class="steps-mini">
+                <li><a href="#/generate">Build a prompt</a> for a skill and run it in ChatGPT, Claude, Gemini…</li>
+                <li>Check the output and merge it on the <a href="#/generate">Generate</a> page.</li>
+                <li>Drop the file here and start practising.</li>
+              </ol>
+              <div id="examples-empty" class="examples"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="library-main" hidden>
+          <div class="page-head">
+            <div>
+              <h1 class="h-page">Library</h1>
+              <p class="muted" id="library-summary"></p>
+            </div>
+            <div class="row gap">
+              <button class="btn ghost" data-action="manage-banks">Manage banks</button>
+              <button class="btn primary" data-action="pick-files">+ Add banks</button>
+            </div>
+          </div>
+          <div class="library-layout">
+            <div class="card tree-card dropzone-soft" id="dropzone-main">
+              <div class="tree-toolbar">
+                <input type="search" id="tree-search" placeholder="Search skills and patterns…" aria-label="Search skills and patterns">
+                <div class="row gap-s">
+                  <button class="link-btn" data-action="select-none">Clear</button>
+                  <button class="link-btn" data-action="expand-all">Expand all</button>
+                </div>
+              </div>
+              <div id="tree" class="tree" role="tree"></div>
+            </div>
+
+            <aside class="card builder" id="builder" aria-label="Session builder">
+              <h2 class="h-card">Build a session</h2>
+              <p class="muted small" id="builder-scope">Select skills or patterns on the left.</p>
+
+              <div class="field">
+                <span class="label">Difficulty</span>
+                <div class="seg" data-filter="level">
+                  <button data-v="easy" class="on">Easy</button><button data-v="medium" class="on">Medium</button><button data-v="hard" class="on">Hard</button>
+                </div>
+              </div>
+              <div class="field">
+                <span class="label">Questions</span>
+                <div class="seg" data-filter="status">
+                  <button data-v="all" class="on">All</button><button data-v="unseen">New</button><button data-v="missed">Missed</button><button data-v="flagged">Flagged</button>
+                </div>
+              </div>
+              <div class="field" id="type-field">
+                <span class="label">Answer type</span>
+                <div class="seg" data-filter="type">
+                  <button data-v="mcq" class="on">Multiple choice</button><button data-v="spr" class="on">Student response</button>
+                </div>
+              </div>
+              <div class="field two">
+                <label><span class="label">How many</span>
+                  <select id="opt-count"><option value="10">10</option><option value="20">20</option><option value="27">27 (module)</option><option value="44">44</option><option value="0" selected>All matching</option></select></label>
+                <label><span class="label">Order</span>
+                  <select id="opt-order"><option value="progressive">Easy → hard</option><option value="shuffle">Shuffled</option><option value="weak">Weakest first</option></select></label>
+              </div>
+              <div class="field two">
+                <label><span class="label">Mode</span>
+                  <select id="opt-mode"><option value="practice" title="Check each answer as you go">Practice</option><option value="exam" title="Answers revealed at the end">Test</option></select></label>
+                <label><span class="label">Timer</span>
+                  <select id="opt-timer"><option value="0">Untimed</option><option value="auto">SAT pace</option><option value="15">15 min</option><option value="32">32 min</option><option value="35">35 min</option><option value="60">60 min</option></select></label>
+              </div>
+              <label class="check"><input type="checkbox" id="opt-show-pattern"> Show pattern name during questions</label>
+
+              <div class="builder-foot">
+                <div><strong id="builder-count">0</strong> <span class="muted">questions</span></div>
+                <button class="btn primary" id="start-btn" disabled>Start →</button>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Generate (pipeline) ============ -->
+    <section class="view" id="view-generate" hidden>
+      <div class="page">
+        <div class="page-head">
+          <div>
+            <h1 class="h-page">Generate questions</h1>
+            <p class="muted">A four-step pipeline: build a prompt → run it in your LLM → validate &amp; merge the output here → practise. Nothing is uploaded anywhere.</p>
+          </div>
+        </div>
+        <ol class="pipeline">
+          <li><b>1</b> Configure</li><li><b>2</b> Run in LLM</li><li><b>3</b> Validate &amp; merge</li><li><b>4</b> Practise</li>
+        </ol>
+
+        <div class="gen-layout">
+          <div class="card" id="gen-form">
+            <h2 class="h-card"><span class="step-num">1</span> Configure the prompt</h2>
+            <div class="field two">
+              <label><span class="label">Section</span><select id="g-section"><option value="math">Math</option><option value="rw">Reading and Writing</option></select></label>
+              <label><span class="label">Domain</span><select id="g-domain"></select></label>
+            </div>
+            <label class="field"><span class="label">Skill</span><select id="g-skill"></select></label>
+            <label class="field" id="g-custom-wrap" hidden><span class="label">Custom skill name</span><input id="g-custom" type="text" placeholder="e.g. Exponential growth word problems"></label>
+            <div class="field">
+              <span class="label">Source questions</span>
+              <div class="seg single" id="g-source">
+                <button data-v="attached" class="on">I'll attach SAT PDFs</button><button data-v="none">No attachment</button>
+              </div>
+              <p class="hint">Attach the College Board practice PDFs for this skill (e.g. <code>math/medium/Circles/…pdf</code>) so the LLM learns the real patterns. It is told never to copy them.</p>
+            </div>
+            <div class="field two">
+              <label><span class="label">Patterns</span><select id="g-patterns"><option value="0">Let the LLM find them</option><option>3</option><option>5</option><option>8</option><option>10</option><option>15</option><option>21</option></select></label>
+              <label><span class="label">Questions per pattern</span><select id="g-per"><option>10</option><option selected>20</option><option>30</option><option>50</option></select></label>
+            </div>
+            <div class="field two">
+              <label><span class="label">Difficulty scale</span><select id="g-diff"><option value="five">5 progressive bands</option><option value="three">Easy / Medium / Hard</option></select></label>
+              <label id="g-spr-wrap"><span class="label">Student-response share</span><select id="g-spr"><option value="0">0% (all multiple choice)</option><option value="25">25%</option><option value="30" selected>30%</option><option value="40">40%</option></select></label>
+            </div>
+            <div class="field two">
+              <label><span class="label">Output format</span><select id="g-format"><option value="json">JSON (recommended)</option><option value="jsonl">JSON Lines</option><option value="csv">CSV</option></select></label>
+              <label><span class="label">Questions per reply</span><select id="g-batch"><option>5</option><option selected>10</option><option>20</option><option>25</option></select></label>
+            </div>
+            <label class="field"><span class="label">Bank id <span class="muted">(keeps progress linked when you re-import)</span></span><input id="g-bankid" type="text" spellcheck="false"></label>
+          </div>
+
+          <div class="card prompt-card">
+            <div class="row between">
+              <h2 class="h-card"><span class="step-num">2</span> Copy into your LLM</h2>
+              <div class="row gap-s">
+                <button class="btn ghost small" id="g-download">↓ .md</button>
+                <button class="btn primary small" id="g-copy">Copy prompt</button>
+              </div>
+            </div>
+            <textarea id="g-output" class="prompt-out" readonly spellcheck="false" aria-label="Generated prompt"></textarea>
+            <details class="followups">
+              <summary>Follow-up prompt for a specific batch</summary>
+              <div class="row gap wrap">
+                <label>Pattern <input id="b-pattern" value="P01" size="5"></label>
+                <label>From <input id="b-from" type="number" value="1" min="1" style="width:5em"></label>
+                <label>To <input id="b-to" type="number" value="10" min="1" style="width:5em"></label>
+                <button class="btn ghost small" id="b-copy">Copy follow-up</button>
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <div class="card validator" id="validator">
+          <div class="row between wrap">
+            <h2 class="h-card"><span class="step-num">3</span> Validate &amp; merge LLM output</h2>
+            <div class="row gap-s">
+              <button class="btn ghost small" id="v-clear">Clear</button>
+            </div>
+          </div>
+          <p class="muted small">Drop every file the LLM gave you (the catalog and each batch of questions), or paste a reply. They're merged into one bank, checked, and you can download it or add it to your library.</p>
+          <div class="validator-inputs">
+            <div class="dropzone small" id="v-drop" tabindex="0" role="button" aria-label="Add files to validate">
+              <strong>Drop files</strong><span>or click to choose</span>
+            </div>
+            <div class="paste">
+              <textarea id="v-paste" placeholder="…or paste one LLM reply here (JSON / JSONL / CSV)" spellcheck="false"></textarea>
+              <button class="btn ghost small" id="v-add-paste">Add pasted text</button>
+            </div>
+          </div>
+          <ul class="file-list" id="v-files"></ul>
+          <div id="v-report"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Progress ============ -->
+    <section class="view" id="view-progress" hidden>
+      <div class="page">
+        <div class="page-head">
+          <div><h1 class="h-page">Progress</h1><p class="muted">Saved only in this browser. Download a progress file to keep a backup or to move to another device.</p></div>
+        </div>
+        <div class="stats-row" id="p-stats"></div>
+        <div class="progress-layout">
+          <div class="card"><h2 class="h-card">By skill</h2><div id="p-skills"></div></div>
+          <div class="stack">
+            <div class="card">
+              <h2 class="h-card">Progress file</h2>
+              <p class="small muted" id="p-backup-info"></p>
+              <div class="row gap wrap">
+                <button class="btn primary" id="p-export">↓ Download progress file</button>
+                <button class="btn ghost" id="p-import">↑ Load progress file</button>
+              </div>
+              <label class="check small"><input type="checkbox" id="p-replace"> Replace current progress instead of merging</label>
+              <input type="file" id="p-file" accept=".json,application/json" hidden>
+            </div>
+            <div class="card">
+              <h2 class="h-card">Where it's stored</h2>
+              <ul class="small storage-list" id="p-storage"></ul>
+              <button class="btn danger-ghost small" id="p-reset">Reset all progress…</button>
+            </div>
+            <div class="card"><h2 class="h-card">Recent sessions</h2><div id="p-history"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Guide ============ -->
+    <section class="view" id="view-guide" hidden>
+      <div class="page prose" id="guide-content"></div>
+    </section>
+
+    <!-- ============ Test player ============ -->
+    <section class="view player" id="view-test" hidden>
+      <header class="player-head">
+        <div class="player-title"><strong id="t-title">Practice</strong><small id="t-sub"></small></div>
+        <div class="timer" id="t-timer"><span id="t-time">Untimed</span><button class="link-btn" id="t-timer-toggle">Hide</button></div>
+        <div class="player-tools">
+          <button class="tool" id="t-calc" title="Calculator">▦ <span>Calculator</span></button>
+          <button class="tool" id="t-ref" title="Reference sheet">▤ <span>Reference</span></button>
+          <button class="tool" id="t-exit" title="Save and exit">✕ <span>Exit</span></button>
+        </div>
+      </header>
+      <div class="player-body" id="t-body">
+        <section class="pane pane-left" id="t-left"></section>
+        <div class="pane-divider" aria-hidden="true"></div>
+        <section class="pane pane-right">
+          <div class="q-bar">
+            <span class="q-num" id="t-num">1</span>
+            <button class="flag" id="t-flag" aria-pressed="false"><span>⚑</span> Mark for review</button>
+            <span class="q-diff" id="t-diff"></span>
+            <button class="link-btn abc" id="t-abc" title="Cross out answer choices">A̶B̶C̶</button>
+          </div>
+          <div id="t-pattern" class="pattern-hint" hidden></div>
+          <div id="t-right"></div>
+          <div id="t-check"></div>
+        </section>
+      </div>
+      <footer class="player-foot">
+        <span class="muted small" id="t-shortcuts">Keys: A–D choose · ←/→ move · F flag</span>
+        <button class="nav-pill" id="t-nav"><span id="t-pos">Question 1 of 1</span> ▴</button>
+        <div class="row gap-s">
+          <button class="btn ghost" id="t-prev">Back</button>
+          <button class="btn primary" id="t-next">Next</button>
+        </div>
+      </footer>
+    </section>
+
+    <!-- ============ Results ============ -->
+    <section class="view" id="view-results" hidden>
+      <div class="page">
+        <div class="results-top card">
+          <div class="ring" id="r-ring"><div><strong id="r-pct">0%</strong><small>correct</small></div></div>
+          <div class="results-copy">
+            <p class="eyebrow">Session complete</p>
+            <h1 class="h-page" id="r-head">—</h1>
+            <p class="muted" id="r-sub"></p>
+            <div class="row gap wrap">
+              <button class="btn primary" id="r-retry">Retry missed</button>
+              <button class="btn ghost" id="r-review">Review answers</button>
+              <button class="btn ghost" id="r-export">↓ Results JSON</button>
+              <a class="btn ghost" href="#/library">Back to library</a>
+            </div>
+          </div>
+        </div>
+        <div class="card"><h2 class="h-card">By pattern</h2><div id="r-patterns"></div></div>
+        <div class="card" id="r-review-card" hidden>
+          <div class="row between wrap">
+            <h2 class="h-card">Review</h2>
+            <div class="seg single" id="r-filter"><button data-v="all" class="on">All</button><button data-v="wrong">Incorrect</button><button data-v="flagged">Flagged</button></div>
+          </div>
+          <div id="r-list"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <input type="file" id="file-input" accept=".json,.jsonl,.ndjson,.csv,.tsv,.txt" multiple hidden>
+  <input type="file" id="v-file-input" accept=".json,.jsonl,.ndjson,.csv,.tsv,.txt,.md" multiple hidden>
+
+  <div class="modal-back" id="modal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-head"><h2 id="modal-title"></h2><button class="icon-btn" id="modal-close" aria-label="Close">✕</button></div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-foot" id="modal-foot"></div>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <noscript><p style="padding:2rem">SAT Practice Studio needs JavaScript. Everything runs locally in your browser.</p></noscript>
+</body>
+</html>

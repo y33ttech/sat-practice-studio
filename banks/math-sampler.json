@@ -1,0 +1,79 @@
+{
+  "metadata": {
+    "id": "math-sampler",
+    "title": "Math sampler — figures & answer types",
+    "section": "math",
+    "description": "Eight original Math questions across Algebra, Advanced Math, and Problem-Solving & Data Analysis, showing graphs, scatterplots, charts, and numeric entry.",
+    "target_questions_per_pattern": 0
+  },
+  "patterns": [
+    { "id": "LF1", "name": "Slope and intercept from a graph", "section": "math", "domain": "Algebra", "skill": "Linear functions", "recognition": "A line drawn on the xy-plane; asked for slope, intercept, or equation.", "formula": "y = mx + b", "fastest_method": "Read two lattice points, compute rise over run." },
+    { "id": "SYS1", "name": "Solution of a system from its equations", "section": "math", "domain": "Algebra", "skill": "Systems of two linear equations in two variables", "recognition": "Two linear equations; asked for x, y, or an expression.", "fastest_method": "Elimination when coefficients line up; otherwise graph both in Desmos." },
+    { "id": "NLF1", "name": "Features of a quadratic graph", "section": "math", "domain": "Advanced Math", "skill": "Nonlinear functions", "recognition": "Parabola or quadratic equation; asked for vertex, zeros, or y-intercept.", "formula": "f(x)=a(x-h)^2+k", "fastest_method": "Zeros are symmetric around the vertex x-coordinate." },
+    { "id": "TVD1", "name": "Interpret a line of best fit", "section": "math", "domain": "Problem-Solving and Data Analysis", "skill": "Two-variable data: Models and scatterplots", "recognition": "Scatterplot with a fitted line; asked to predict or interpret slope.", "fastest_method": "Plug the x-value into the line, not into a nearby data point." },
+    { "id": "PCT1", "name": "Percent change between values", "section": "math", "domain": "Problem-Solving and Data Analysis", "skill": "Percentages", "recognition": "Original and new values; asked for percent increase or decrease.", "formula": "\\%\\Delta = \\frac{new-old}{old}\\times 100", "fastest_method": "Divide the change by the ORIGINAL value." },
+    { "id": "OVD1", "name": "Mean from a frequency chart", "section": "math", "domain": "Problem-Solving and Data Analysis", "skill": "One-variable data: Distributions and measures of center and spread", "recognition": "Bar chart or table of frequencies; asked for mean or median.", "fastest_method": "Mean = Σ(value × frequency) ÷ Σ frequency." }
+  ],
+  "questions": [
+    {
+      "id": "LF1-Q001", "pattern_id": "LF1", "number_in_pattern": 1, "difficulty": "easy", "type": "mcq",
+      "stem": "The graph of the linear function $f$ is shown. What is the slope of the graph of $y=f(x)$?",
+      "choices": { "A": "$-2$", "B": "$-\\frac{1}{2}$", "C": "$\\frac{1}{2}$", "D": "$2$" },
+      "correct_answer": "D",
+      "explanation": { "fast_method": "The line passes through $(0,-3)$ and $(2,1)$: slope $=\\frac{1-(-3)}{2-0}=2$.", "desmos_method": "Not needed — read two lattice points.", "pattern_tip": "Pick points where the line crosses grid intersections exactly." },
+      "visual": { "type": "coordinate_plane", "x_min": -5, "x_max": 5, "y_min": -6, "y_max": 6, "lines": [{ "m": 2, "b": -3 }], "points": [{ "x": 0, "y": -3 }, { "x": 2, "y": 1 }] }
+    },
+    {
+      "id": "SYS1-Q001", "pattern_id": "SYS1", "number_in_pattern": 1, "difficulty": "medium", "type": "spr",
+      "stem": "$$3x + 2y = 19$$ $$x - 2y = -3$$ If $(x, y)$ is the solution to the system of equations above, what is the value of $y$?",
+      "correct_answer": "3.5", "accepted_answers": ["7/2"],
+      "explanation": { "fast_method": "Add the equations: $4x=16$, so $x=4$. Then $4-2y=-3$, so $y=\\frac{7}{2}$.", "desmos_method": "Graph both lines and click the intersection: $(4, 3.5)$.", "pattern_tip": "Opposite $y$ coefficients ($+2y$, $-2y$) mean add the equations." },
+      "visual": null
+    },
+    {
+      "id": "NLF1-Q001", "pattern_id": "NLF1", "number_in_pattern": 1, "difficulty": "medium", "type": "mcq",
+      "stem": "The graph of $y = f(x)$, where $f(x) = x^2 - 4x - 5$, is shown. Which of the following is the $x$-coordinate of the vertex of the graph?",
+      "choices": { "A": "$-5$", "B": "$-1$", "C": "$2$", "D": "$5$" },
+      "correct_answer": "C",
+      "explanation": { "fast_method": "Zeros are $-1$ and $5$; the vertex is halfway: $\\frac{-1+5}{2}=2$.", "hand_solution": "$x=-\\frac{b}{2a}=-\\frac{-4}{2}=2$.", "desmos_method": "Type the function and click the minimum point.", "pattern_tip": "Vertex x = average of the zeros." },
+      "visual": { "type": "coordinate_plane", "x_min": -4, "x_max": 8, "y_min": -10, "y_max": 8, "x_step": 1, "y_step": 2, "curves": [{ "fn": "x^2-4x-5", "label": "y = f(x)" }] }
+    },
+    {
+      "id": "NLF1-Q002", "pattern_id": "NLF1", "number_in_pattern": 2, "difficulty": "hard", "type": "spr",
+      "stem": "The function $g$ is defined by $g(x) = -2(x-3)^2 + k$, where $k$ is a constant. If the graph of $y=g(x)$ crosses the $x$-axis at $x=1$, what is the value of $k$?",
+      "correct_answer": "8",
+      "explanation": { "fast_method": "$0 = -2(1-3)^2 + k = -8 + k$, so $k = 8$.", "desmos_method": "Add a slider for $k$ and move it until the graph passes through $(1,0)$.", "pattern_tip": "A point on the graph means substitute both coordinates." },
+      "visual": null
+    },
+    {
+      "id": "TVD1-Q001", "pattern_id": "TVD1", "number_in_pattern": 1, "difficulty": "medium", "type": "mcq",
+      "stem": "The scatterplot shows the number of hours 10 students studied and their quiz scores, along with a line of best fit. Based on the line of best fit, which is closest to the predicted score for a student who studied 5 hours?",
+      "choices": { "A": "65", "B": "70", "C": "77", "D": "84" },
+      "correct_answer": "C",
+      "explanation": { "fast_method": "The line is about $y = 6x + 47$; at $x=5$, $y = 77$.", "pattern_tip": "Use the line, not the closest dot." },
+      "visual": { "type": "scatter", "x_label": "Hours studied", "y_label": "Quiz score", "x_min": 0, "x_max": 8, "y_min": 40, "y_max": 100, "x_step": 1, "y_step": 10, "points": [[1, 55], [1.5, 54], [2, 58], [3, 68], [3.5, 64], [4, 72], [5, 76], [5.5, 82], [6, 85], [7, 88]], "best_fit": { "m": 6, "b": 47 } }
+    },
+    {
+      "id": "PCT1-Q001", "pattern_id": "PCT1", "number_in_pattern": 1, "difficulty": "easy", "type": "spr",
+      "stem": "A store raised the price of a jacket from $\\$80$ to $\\$92$. By what percent did the price increase? (Enter your answer without the % sign.)",
+      "correct_answer": "15",
+      "explanation": { "fast_method": "$\\frac{92-80}{80}=\\frac{12}{80}=0.15$, so 15%.", "pattern_tip": "Always divide by the original amount." },
+      "visual": null
+    },
+    {
+      "id": "PCT1-Q002", "pattern_id": "PCT1", "number_in_pattern": 2, "difficulty": "hard", "type": "mcq",
+      "stem": "The value of a share rose by 25% on Monday and then fell by 20% on Tuesday. The value at the end of Tuesday was what percent of the value at the start of Monday?",
+      "choices": { "A": "95%", "B": "100%", "C": "105%", "D": "120%" },
+      "correct_answer": "B",
+      "explanation": { "fast_method": "$1.25 \\times 0.80 = 1.00$, i.e. 100%.", "pattern_tip": "Successive percent changes multiply; they don't add." },
+      "visual": null
+    },
+    {
+      "id": "OVD1-Q001", "pattern_id": "OVD1", "number_in_pattern": 1, "difficulty": "medium", "type": "spr",
+      "stem": "The bar chart shows how many books each of 20 students read over the summer. What is the mean number of books read per student?",
+      "correct_answer": "2.25", "accepted_answers": ["9/4"],
+      "explanation": { "fast_method": "Total books $=0(2)+1(4)+2(5)+3(5)+4(4)=45$. Students $=2+4+5+5+4=20$. Mean $=\\frac{45}{20}=2.25$.", "desmos_method": "In a table, enter values in $x_1$ and counts in $y_1$, then type mean($x_1$, $y_1$).", "pattern_tip": "Multiply each value by its frequency, add, then divide by the total frequency." },
+      "visual": { "type": "bar_chart", "categories": ["0", "1", "2", "3", "4"], "values": [2, 4, 5, 5, 4], "x_label": "Books read", "y_label": "Number of students", "show_values": true }
+    }
+  ]
+}

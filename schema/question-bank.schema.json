@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.github.io/sat-practice-studio/schema/question-bank.schema.json",
+  "title": "SAT Practice Studio question bank",
+  "description": "Canonical JSON format read by SAT Practice Studio. The importer is more lenient than this schema (it accepts CSV/JSONL, code fences, option text as the answer, etc.), but files that match this schema import without warnings.",
+  "type": "object",
+  "required": ["questions"],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Stable bank id. Progress is keyed by bank id + question id." },
+        "title": { "type": "string" },
+        "section": { "enum": ["math", "rw"] },
+        "domain": { "type": "string" },
+        "skill": { "type": "string" },
+        "description": { "type": "string" },
+        "target_questions_per_pattern": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "patterns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "section": { "enum": ["math", "rw"] },
+          "domain": { "type": "string" },
+          "skill": { "type": "string", "description": "Digital SAT skill name, e.g. \"Circles\" or \"Transitions\"." },
+          "recognition": { "type": "string" },
+          "formula": { "type": "string" },
+          "skill_description": { "type": "string" },
+          "common_mistakes": { "type": "array", "items": { "type": "string" } },
+          "fastest_method": { "type": "string" },
+          "desmos_guidance": { "type": "string" },
+          "source_ref": { "type": "string" },
+          "expected_question_count": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "questions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "pattern_id", "type", "stem", "correct_answer"],
+        "properties": {
+          "id": { "type": "string" },
+          "pattern_id": { "type": "string" },
+          "number_in_pattern": { "type": "integer", "minimum": 1 },
+          "difficulty": { "enum": ["easy", "easy-medium", "medium", "medium-hard", "hard"] },
+          "type": { "enum": ["mcq", "spr"] },
+          "passage": { "type": "string" },
+          "passages": { "type": "array", "items": { "type": "object", "required": ["text"], "properties": { "label": { "type": "string" }, "text": { "type": "string" } } } },
+          "stem": { "type": "string" },
+          "choices": { "type": "object", "required": ["A", "B", "C", "D"], "properties": { "A": { "type": "string" }, "B": { "type": "string" }, "C": { "type": "string" }, "D": { "type": "string" } }, "additionalProperties": false },
+          "correct_answer": { "type": "string" },
+          "accepted_answers": { "type": "array", "items": { "type": "string" } },
+          "tolerance": { "type": "number", "exclusiveMinimum": 0 },
+          "explanation": { "type": "object", "additionalProperties": { "type": "string" } },
+          "visual": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/visual" }] }
+        },
+        "allOf": [
+          { "if": { "properties": { "type": { "const": "mcq" } } }, "then": { "required": ["choices"], "properties": { "correct_answer": { "enum": ["A", "B", "C", "D"] } } } },
+          { "if": { "properties": { "type": { "const": "spr" } } }, "then": { "properties": { "correct_answer": { "pattern": "^-?(\\d+(\\.\\d*)?|\\.\\d+)(/\\d+)?$" } } } }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "visual": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "enum": ["table", "coordinate_plane", "scatter", "bar_chart", "histogram", "line_chart", "geometry", "image"] },
+        "caption": { "type": "string" }
+      }
+    }
+  }
+}
